@@ -1,0 +1,224 @@
+erDiagram
+    USER ||--o{ GUEST_TOKEN : "magic links"
+    USER ||--|| NOTIFICATION_PREF : has
+    USER ||--o{ PUSH_SUBSCRIPTION : has
+    USER ||--o{ SUB_AVAILABILITY : "open days/times"
+    USER ||--o{ SUBBING_LEAGUE : "willing to sub"
+    LEAGUE ||--o{ SUBBING_LEAGUE : "sub pool"
+    USER ||--o{ ORGANIZER_REGISTRATION : "registered with"
+    ORGANIZER ||--o{ ORGANIZER_REGISTRATION : holds
+    ORGANIZER ||--o{ LEAGUE : runs
+    LEAGUE ||--o{ TEAM : contains
+    TEAM ||--o{ ROSTER_MEMBERSHIP : has
+    USER |o--o{ ROSTER_MEMBERSHIP : "null = placeholder"
+    TEAM ||--o{ GAME : plays
+    LEAGUE ||--o{ GAME : schedules
+    GAME ||--o{ ABSENCE : has
+    ROSTER_MEMBERSHIP ||--o{ ABSENCE : "absent player"
+    TEAM ||--o{ SUB_REQUEST : posts
+    USER ||--o{ SUB_REQUEST : creates
+    SUB_REQUEST ||--o{ SUB_SLOT : "one per date"
+    ABSENCE ||--o| SUB_SLOT : "max 1 open slot"
+    SUB_SLOT ||--o{ SLOT_RESPONSE : receives
+    USER ||--o{ SLOT_RESPONSE : submits
+    SUB_SLOT |o--o| SUB_COMMITMENT : "when filled"
+    USER ||--o{ SUB_COMMITMENT : "booked time"
+    TEAM ||--o{ ON_CALL_ENTRY : "backup list"
+    USER |o--o{ ON_CALL_ENTRY : "null = guest contact"
+    SUB_REQUEST ||--o{ MESSAGE : chat
+    SUB_SLOT ||--o{ RATING : "after game"
+    SUB_SLOT ||--o| ATTENDANCE_RECORD : confirms
+    USER ||--o{ REPORT : files
+    USER ||--o{ BLOCK : creates
+    USER ||--o{ NOTIFICATION : receives
+
+    USER {
+        uuid id PK
+        string email UK
+        string phone
+        string display_name
+        string account_type "full or guest"
+        string gender
+        string skill_tier
+        int tier_flex_down
+        int tier_flex_up
+        point home_location "PostGIS later"
+        int travel_radius_km
+        float reliability_score
+        timestamptz created_at
+    }
+    GUEST_TOKEN {
+        uuid id PK
+        uuid user_id FK
+        string token_hash
+        timestamptz expires_at
+    }
+    NOTIFICATION_PREF {
+        uuid user_id PK
+        jsonb channels
+        time quiet_start
+        time quiet_end
+        bool urgent_opt_in
+    }
+    PUSH_SUBSCRIPTION {
+        uuid id PK
+        uuid user_id FK
+        jsonb endpoint_keys
+    }
+    SUB_AVAILABILITY {
+        uuid id PK
+        uuid user_id FK
+        int weekday
+        time start_time
+        time end_time
+        string_array positions
+    }
+    SUBBING_LEAGUE {
+        uuid user_id FK
+        uuid league_id FK
+        bool always_yes
+    }
+    ORGANIZER {
+        uuid id PK
+        string name
+    }
+    ORGANIZER_REGISTRATION {
+        uuid user_id FK
+        uuid organizer_id FK
+        timestamptz declared_at
+        bool flagged_by_captain
+    }
+    LEAGUE {
+        uuid id PK
+        uuid organizer_id FK
+        string name
+        string location
+        string timezone "IANA"
+        int weekday
+        time start_time
+        int game_duration_min
+        int matches_per_night
+        string tier
+        string format "4s 6s coed etc"
+        jsonb gender_rules
+        bool subs_must_be_registered
+        string moderation_status
+    }
+    TEAM {
+        uuid id PK
+        uuid league_id FK
+        string name
+        uuid created_by FK
+    }
+    ROSTER_MEMBERSHIP {
+        uuid id PK
+        uuid team_id FK
+        uuid user_id FK "nullable"
+        string placeholder_name
+        string role "captain co_captain player"
+        string_array positions
+        string gender
+    }
+    GAME {
+        uuid id PK
+        uuid team_id FK
+        uuid league_id FK
+        timestamptz starts_at
+        timestamptz ends_at
+        string opponent
+        string court
+        string source "generated or manual"
+    }
+    ABSENCE {
+        uuid id PK
+        uuid game_id FK
+        uuid roster_membership_id FK
+        uuid marked_by FK
+        string status "active disputed returned"
+    }
+    SUB_REQUEST {
+        uuid id PK
+        uuid team_id FK
+        uuid created_by FK
+        string mode "open direct on_call"
+        uuid target_user_id FK "direct only"
+        timestamptz first_dibs_until
+        string share_token
+        bool is_recurring
+        bool is_last_minute
+    }
+    SUB_SLOT {
+        uuid id PK
+        uuid request_id FK
+        uuid absence_id FK
+        uuid game_id FK
+        string position
+        string gender_requirement
+        string status "open tentative filled cancelled"
+        uuid filled_by FK
+    }
+    SLOT_RESPONSE {
+        uuid id PK
+        uuid slot_id FK
+        uuid user_id FK
+        string response "accept decline tentative"
+        int waitlist_rank
+        timestamptz responded_at
+    }
+    SUB_COMMITMENT {
+        uuid id PK
+        uuid user_id FK
+        uuid slot_id FK
+        tstzrange time_range "end shrunk by 20 min"
+    }
+    ON_CALL_ENTRY {
+        uuid id PK
+        uuid team_id FK
+        uuid user_id FK "nullable"
+        string guest_name
+        string guest_contact
+    }
+    MESSAGE {
+        uuid id PK
+        uuid request_id FK
+        uuid sender_id FK
+        text body
+        timestamptz sent_at
+    }
+    RATING {
+        uuid id PK
+        uuid slot_id FK
+        uuid rater_id FK
+        uuid ratee_id FK
+        string direction "team_to_sub or sub_to_team"
+        bool thumbs_up
+        string skill_accuracy
+        timestamptz revealed_at
+    }
+    ATTENDANCE_RECORD {
+        uuid id PK
+        uuid slot_id FK
+        string status "showed no_show"
+        uuid confirmed_by FK
+        bool disputed
+    }
+    REPORT {
+        uuid id PK
+        uuid reporter_id FK
+        uuid reported_id FK
+        text reason
+        string status
+    }
+    BLOCK {
+        uuid blocker_id FK
+        uuid blocked_id FK
+    }
+    NOTIFICATION {
+        uuid id PK
+        uuid user_id FK
+        string channel
+        string kind
+        jsonb payload
+        timestamptz send_after
+        timestamptz sent_at
+    }

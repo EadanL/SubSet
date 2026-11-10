@@ -1,0 +1,63 @@
+flowchart TB
+    subgraph Client["Client (phone / desktop browser, installable PWA)"]
+        UI["HTMX + Alpine.js + Tailwind pages"]
+        SW["Service worker: web push, offline shell"]
+    end
+
+    subgraph Edge["Edge"]
+        CADDY["Caddy / reverse proxy<br/>HTTPS, static files"]
+    end
+
+    subgraph Django["Django project (modular monolith)"]
+        direction TB
+        subgraph Apps["Django apps"]
+            ACC["accounts<br/>users, guests, magic links, prefs"]
+            LGE["leagues<br/>organizers, leagues, registrations, moderation"]
+            TMS["teams<br/>teams, rosters, roles, on-call lists"]
+            SCH["scheduling<br/>games, schedule import, manual games"]
+            ABS["absences<br/>absences, sub slots, cap rule"]
+            REQ["requests<br/>requests, responses, waitlist, share links, chat"]
+            MAT["matching<br/>hard filters, soft scoring, commitments"]
+            RAT["feedback<br/>ratings, attendance, reliability"]
+            SAF["safety<br/>reports, blocks"]
+            NOT["notifications<br/>outbox, preferences, quiet hours, rate limits"]
+        end
+        ADMIN["Django Admin<br/>moderation back office"]
+        POL["Permissions layer<br/>captain / co-captain / player / guest"]
+    end
+
+    subgraph Worker["Worker process (Procrastinate)"]
+        J1["First-dibs timer expiry"]
+        J2["Last-minute blasts"]
+        J3["Blind-rating windows"]
+        J4["Notification dispatcher"]
+        J5["Reminders, guest conversion prompts"]
+    end
+
+    subgraph DB["PostgreSQL"]
+        TBL["Core tables"]
+        CON["Constraints: exclusion on commitments,<br/>partial unique on open slots"]
+        QUEUE["Job queue tables"]
+    end
+
+    subgraph Ext["External services"]
+        PUSH["Web Push (VAPID)"]
+        MAIL["Email: Resend / Postmark"]
+        SMS["SMS: Twilio (optional)"]
+    end
+
+    UI --> CADDY
+    SW <--> CADDY
+    CADDY --> Django
+    Apps --> POL
+    ABS --> MAT
+    REQ --> MAT
+    REQ --> NOT
+    ABS --> NOT
+    Django --> DB
+    Worker --> DB
+    Worker --> NOT
+    NOT --> PUSH
+    NOT --> MAIL
+    NOT --> SMS
+    ADMIN --> Apps
