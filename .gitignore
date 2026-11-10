@@ -1,0 +1,71 @@
+# ==========================================
+# macOS System Files
+# ==========================================
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon_
+._*
+.Spotlight-V100
+.Trashes
+*.icloud
+
+# ==========================================
+# Python / Django
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.pot
+*.pyo
+.Python
+env/
+venv/
+.env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+db.sqlite3
+db.sqlite3-journal
+
+# ==========================================
+# Environment & Secrets (CRITICAL)
+# ==========================================
+.env
+.env.[a-zA-Z]*
+!.env.example
+secrets.json
+
+# ==========================================
+# Docker & Database
+# ==========================================
+# If you ever mount your postgres data data locally instead of a named volume:
+postgres_data/
+pgdata/
+
+# ==========================================
+# Frontend / Build Tools (Tailwind/Alpine)
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+.parcel-cache
+.cache/
+dist/
+
+# ==========================================
+# Testing & IDEs
+# ==========================================
+.pytest_cache/
+.coverage
+htmlcov/
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
