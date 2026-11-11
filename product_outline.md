@@ -2,7 +2,7 @@
 
 A web app that helps players in recreational adult volleyball leagues find substitutes when they can't make a game, and lets players pick up sub spots in leagues they're eligible for.
 
-> **Status:** Planning / pre-MVP. This document captures the agreed feature set and design decisions.
+> **Status:** MVP in progress. Phase 1 (project foundation and custom user model) is complete; see [Build Progress](#build-progress). This document captures the agreed feature set and design decisions.
 
 ---
 
@@ -26,7 +26,8 @@ A web app that helps players in recreational adult volleyball leagues find subst
 16. [Privacy & Anonymous Rosters](#privacy--anonymous-rosters)
 17. [Calendar Sync](#calendar-sync)
 18. [Roadmap](#roadmap)
-19. [Launch Strategy & Open Questions](#launch-strategy--open-questions)
+19. [Build Progress](#build-progress)
+20. [Launch Strategy & Open Questions](#launch-strategy--open-questions)
 
 ---
 
@@ -57,17 +58,21 @@ Core entities:
 | **Rating** | Blind, simultaneous feedback between sub and team |
 | **Attendance record** | Captain-confirmed show / no-show (disputable) |
 
+Every entity uses a UUID primary key. The full schema lives in `db_erd.mermaid`.
+
 ---
 
 ## Users & Profiles
 
-- Sign-in with a full account (guest accounts are covered below).
-- **Playing profile:** leagues played in, teams, positions, self-reported skill tier.
+- Sign-in with a full account using **email and password**. Emails are case-insensitive (`Jordan@Example.com` and `jordan@example.com` are the same account). Guest accounts are covered below.
+- **Playing profile:** leagues played in, teams, positions, self-reported skill tier, gender.
+- **Skill tier scale** (shared by players and leagues): 1 Beginner · 2 Novice (C) · 3 Intermediate (B) · 4 Advanced (BB) · 5 Elite (A/AA).
+- **Gender options:** Woman, Man, Non-binary, Prefer not to say.
 - **Subbing profile:**
   - Days of the week open to subbing
   - Positions willing to sub
   - Leagues they can or want to sub for
-  - Skill tier flexibility (a range, e.g. willing to sub one tier down or a stretch up)
+  - Skill tier flexibility (a range, e.g. willing to sub one tier down or a stretch up), stored as a number of tiers down and up from the player's own tier
   - Travel radius
   - **Organizer registrations** (which organizers they are registered with)
 - Notification preferences, including quiet hours and opt-in to urgent alerts.
@@ -80,6 +85,7 @@ Core entities:
 - League data is **manually entered** by users, with moderation to limit duplicates.
 - While filling out a league entry, the app **suggests existing leagues** on the same night/location, which reduces duplicates and helps people discover leagues they missed.
 - Required fields include location, night and times, game duration (and match slots for multi-match nights), tier, format (4s, 6s, co-ed, reverse co-ed, etc.), and **gender/format rules** (e.g. minimum number of women on court).
+- Only players whose gender is **Woman** count toward a women minimum. Every other value, including unset, does not.
 
 ### Organizer → League
 - Registration requirements live on the **organizer/league**, not the player.
@@ -187,7 +193,7 @@ Skill is self-reported, so ratings gradually calibrate it. Matching players are 
 
 - Captains can generate a **shareable request link** to drop in a group chat or Facebook group.
 - Anyone can claim a spot as a **guest** without creating an account:
-  - Provides a name and a phone or email
+  - Provides a name and a phone or email (at least one is required; guests have no password)
   - Receives a **magic link** to manage or cancel their spot
   - Is clearly labeled **"guest, no history"** to the captain
   - Is **blocked from leagues requiring registration**, with an explanation
@@ -275,9 +281,25 @@ Skill is self-reported, so ratings gradually calibrate it. Matching players are 
 
 ---
 
+## Build Progress
+
+### Phase 1: Foundation (complete)
+- **`core` app:** abstract base models (UUID primary key, created/updated timestamps) and shared choices (skill tier scale, gender). It creates no tables.
+- **`accounts` app:** custom User model with email login, used as Django's `AUTH_USER_MODEL`.
+  - Full accounts require an email; guest accounts require an email or a phone and have no password.
+  - The database enforces case-insensitive unique emails, valid account types, and non-negative tier flex and travel radius.
+  - Django Admin manages users.
+- **Deferred User fields:** `home_location` (waits for PostGIS) and `reliability_score` (computed by the feedback app).
+- **Local development:** PostgreSQL runs in Docker on host port **5433**, to avoid clashing with a locally installed Postgres on 5432.
+
+### Phase 2: Onboarding UI (planned)
+- Sign-up, log-in and log-out, profile onboarding, and profile view/edit.
+
+---
+
 ## Launch Strategy & Open Questions
 
 - **Cold start:** launch in one city, facility, or league first to build density before going broad.
 - **Liability:** decide whether a waiver or just a disclaimer is needed, and how to handle leagues that require organizer approval or rating caps for subs.
 - **Open decision:** this README assumes games come from **generated schedules** with a manual fallback (the recommended default). Confirm before finalizing the data model.
-- **Next step:** draft the detailed data model (tables, relationships, permissions) and notification logic.
+- **Next step:** design the notification logic and permissions. The data model is drafted in `db_erd.mermaid` and is implemented app by app (see [Build Progress](#build-progress)).

@@ -34,18 +34,24 @@ erDiagram
 
     USER {
         uuid id PK
-        string email UK
-        string phone
+        string email UK "nullable, stored lowercase, unique ignoring case"
+        string phone "blank allowed"
         string display_name
-        string account_type "full or guest"
-        string gender
-        string skill_tier
-        int tier_flex_down
-        int tier_flex_up
-        point home_location "PostGIS later"
-        int travel_radius_km
-        float reliability_score
+        string account_type "full needs email, guest needs email or phone"
+        string gender "woman man non_binary prefer_not_to_say"
+        smallint skill_tier "SkillTier 1-5, nullable"
+        smallint tier_flex_down "min 0"
+        smallint tier_flex_up "min 0"
+        point home_location "deferred, PostGIS later"
+        smallint travel_radius_km "nullable"
+        float reliability_score "deferred, owned by feedback app"
+        string password "Django auth, unusable for guests"
+        timestamptz last_login
+        bool is_active
+        bool is_staff
+        bool is_superuser
         timestamptz created_at
+        timestamptz updated_at
     }
     GUEST_TOKEN {
         uuid id PK
@@ -98,7 +104,7 @@ erDiagram
         time start_time
         int game_duration_min
         int matches_per_night
-        string tier
+        smallint tier "SkillTier 1-5, shared with USER"
         string format "4s 6s coed etc"
         jsonb gender_rules
         bool subs_must_be_registered
@@ -117,7 +123,7 @@ erDiagram
         string placeholder_name
         string role "captain co_captain player"
         string_array positions
-        string gender
+        string gender "same choices as USER"
     }
     GAME {
         uuid id PK
