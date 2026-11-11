@@ -1,0 +1,7 @@
+[flake8]
+max-line-length = 88
+extend-ignore = E203
+exclude = .git,.venv,__pycache__,*/migrations/*
+per-file-ignores =
+    # Django's AUTH_PASSWORD_VALIDATORS dotted paths can't be wrapped.
+    config/settings.py:E501
