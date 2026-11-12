@@ -1,0 +1,21 @@
+{% extends "accounts/auth_base.html" %}
+
+{% block title %}Create your account | SubSet{% endblock %}
+
+{% block heading %}Create your account{% endblock %}
+
+{% block intro %}
+  <p class="font-light text-slate">Next you'll add your level, so the right spots find you.</p>
+{% endblock %}
+
+{% block form %}
+  {% include "accounts/partials/_signup_form.html" %}
+{% endblock %}
+
+{% block after_form %}
+  <p class="text-slate">
+    Already have an account?
+    <a href="{% url 'accounts:login' %}"
+       class="font-medium text-court underline underline-offset-4 hover:text-court-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">Log in</a>
+  </p>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% comment %}
+  Swapped in place on a failed HTMX submit. `next` comes from LoginView, which
+  has already dropped unsafe values. The reset link appears once that route exists.
+{% endcomment %}
+{% url 'accounts:password_reset' as reset_url %}
+<form method="post" action="{% url 'accounts:login' %}"
+      hx-post="{% url 'accounts:login' %}" hx-target="this" hx-swap="outerHTML"
+      hx-disabled-elt="find button[type=submit]"
+      novalidate
+      class="flex flex-col gap-6">
+  {% csrf_token %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  {% include "partials/_form_errors.html" %}
+  {% include "partials/_field.html" with field=form.username %}
+  {% include "partials/_password_field.html" with field=form.password %}
+
+  {% if reset_url %}
+    <div class="flex justify-end">
+      <a href="{{ reset_url }}"
+         class="inline-flex min-h-11 items-center font-medium text-court underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+        Forgot your password?
+      </a>
+    </div>
+  {% endif %}
+
+  <button type="submit"
+          class="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full bg-court px-6 font-semibold text-surface hover:bg-court-dark disabled:cursor-wait focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+    <span class="in-[.htmx-request]:hidden">Log in</span>
+    <span class="hidden in-[.htmx-request]:inline">Logging in…</span>
+  </button>
+</form>

@@ -44,6 +44,8 @@ class UserAdmin(BaseUserAdmin):
                     "account_type",
                     "gender",
                     "skill_tier",
+                    "main_positions",
+                    "sub_positions",
                     "tier_flex_down",
                     "tier_flex_up",
                     "travel_radius_km",

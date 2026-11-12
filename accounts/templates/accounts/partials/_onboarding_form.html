@@ -1,0 +1,17 @@
+{% comment %}
+  Swapped in place on an invalid HTMX submit; a valid one redirects home.
+{% endcomment %}
+<form method="post" action="{% url 'accounts:onboarding' %}"
+      hx-post="{% url 'accounts:onboarding' %}" hx-target="this" hx-swap="outerHTML"
+      hx-disabled-elt="find button[type=submit]"
+      novalidate
+      class="flex flex-col gap-8">
+  {% csrf_token %}
+  {% include "partials/_form_errors.html" %}
+  {% include "accounts/partials/_profile_fields.html" %}
+  <button type="submit"
+          class="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full bg-court px-6 font-semibold text-surface hover:bg-court-dark disabled:cursor-wait focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+    <span class="in-[.htmx-request]:hidden">Save profile</span>
+    <span class="hidden in-[.htmx-request]:inline">Saving profile…</span>
+  </button>
+</form>

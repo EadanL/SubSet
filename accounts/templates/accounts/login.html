@@ -1,0 +1,17 @@
+{% extends "accounts/auth_base.html" %}
+
+{% block title %}Log in | SubSet{% endblock %}
+
+{% block heading %}Log in{% endblock %}
+
+{% block form %}
+  {% include "accounts/partials/_login_form.html" %}
+{% endblock %}
+
+{% block after_form %}
+  <p class="text-slate">
+    New to SubSet?
+    <a href="{% url 'accounts:signup' %}"
+       class="font-medium text-court underline underline-offset-4 hover:text-court-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">Create an account</a>
+  </p>
+{% endblock %}

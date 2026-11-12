@@ -1,0 +1,50 @@
+{% load accounts_extras %}
+{% comment %}
+  Read-only profile. `id="profile-card"` is the swap target shared with
+  _profile_form.html, so "Edit profile" and "Cancel" replace each other.
+{% endcomment %}
+<div id="profile-card" class="flex flex-col gap-6">
+  <dl class="flex flex-col divide-y divide-hairline border-y border-hairline">
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Display name</dt>
+      <dd class="font-medium">{{ profile_user.display_name }}</dd>
+    </div>
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Email</dt>
+      <dd class="font-medium break-all">{{ profile_user.email }}</dd>
+    </div>
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Gender</dt>
+      <dd class="font-medium">{{ profile_user.get_gender_display }}</dd>
+    </div>
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Your level</dt>
+      <dd class="font-medium">{{ profile_user.get_skill_tier_display }}</dd>
+    </div>
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Main positions</dt>
+      <dd class="font-medium">{{ profile_user.main_positions|position_labels }}</dd>
+    </div>
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Also subs at</dt>
+      <dd class="font-medium">{% if profile_user.sub_positions %}{{ profile_user.sub_positions|position_labels }}{% else %}<span class="font-normal text-slate">Main positions only</span>{% endif %}</dd>
+    </div>
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Range you'll sub</dt>
+      <dd class="font-medium">{{ profile_user|sub_range }}</dd>
+    </div>
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">How far you'll travel</dt>
+      <dd class="font-medium">{% if profile_user.travel_radius_km %}<span class="font-stretch-condensed tabular-nums">{{ profile_user.travel_radius_km }}</span> km{% else %}<span class="font-normal text-slate">Not set</span>{% endif %}</dd>
+    </div>
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Phone</dt>
+      <dd class="font-medium">{% if profile_user.phone %}{{ profile_user.phone }}{% else %}<span class="font-normal text-slate">Not set</span>{% endif %}</dd>
+    </div>
+  </dl>
+  <a href="{% url 'accounts:profile_edit' %}"
+     hx-get="{% url 'accounts:profile_edit' %}" hx-target="#profile-card" hx-swap="outerHTML"
+     class="inline-flex min-h-11 items-center justify-center self-start rounded-full bg-court px-6 font-semibold text-surface hover:bg-court-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+    Edit profile
+  </a>
+</div>

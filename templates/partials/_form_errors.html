@@ -1,0 +1,9 @@
+{% comment %}
+  Errors that belong to the whole form rather than one field. role="alert" makes
+  screen readers announce them after an HTMX swap.
+{% endcomment %}
+{% if form.non_field_errors %}
+  <div role="alert" class="flex flex-col gap-1 border border-danger bg-surface px-4 py-3 font-medium text-danger">
+    {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+  </div>
+{% endif %}

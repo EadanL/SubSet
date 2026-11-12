@@ -1,0 +1,32 @@
+{% load static tailwind_cli %}<!doctype html>
+<html lang="en" class="bg-paper">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SubSet{% endblock %}</title>
+  {% tailwind_css %}
+  <script src="{% static 'vendor/htmx.min.js' %}" defer></script>
+  <script src="{% static 'vendor/alpine.min.js' %}" defer></script>
+</head>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+      class="flex min-h-dvh flex-col bg-paper font-sans text-base text-ink antialiased">
+  <a href="#main"
+     class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-court focus:px-4 focus:py-2 focus:text-surface">
+    Skip to content
+  </a>
+
+  {% include "partials/_nav.html" %}
+  {% include "partials/_messages.html" %}
+
+  <main id="main" class="flex-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="border-t border-hairline">
+    <div class="mx-auto flex max-w-6xl flex-col gap-1 px-5 py-8 text-meta text-slate">
+      <p class="font-serif font-semibold text-ink">SubSet</p>
+      <p>Subs for recreational volleyball leagues.</p>
+    </div>
+  </footer>
+</body>
+</html>

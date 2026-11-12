@@ -69,3 +69,7 @@ htmlcov/
 *.njsproj
 *.sln
 *.swp
+
+# Tailwind (django-tailwind-cli): downloaded CLI binary and build output
+.django_tailwind_cli/
+static/css/tailwind.css

@@ -1,0 +1,30 @@
+{% comment %}
+  Swapped in place on an invalid HTMX submit (hx-target="this"). The form's
+  Alpine state drives the live "passwords match" hint; each password field has
+  its own eye toggle.
+{% endcomment %}
+<form method="post" action="{% url 'accounts:signup' %}"
+      hx-post="{% url 'accounts:signup' %}" hx-target="this" hx-swap="outerHTML"
+      hx-disabled-elt="find button[type=submit]"
+      x-data="{ p1: '', p2: '' }"
+      novalidate
+      class="flex flex-col gap-6">
+  {% csrf_token %}
+  {% include "partials/_form_errors.html" %}
+  {% include "partials/_field.html" with field=form.email %}
+  {% include "partials/_field.html" with field=form.display_name %}
+  {% include "partials/_password_field.html" with field=form.password1 %}
+
+  <div class="flex flex-col gap-2">
+    {% include "partials/_password_field.html" with field=form.password2 %}
+    <p hidden x-bind:hidden="!(p2 && p1 !== p2)" aria-live="polite" class="text-meta text-slate">
+      Passwords don't match yet.
+    </p>
+  </div>
+
+  <button type="submit"
+          class="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full bg-court px-6 font-semibold text-surface hover:bg-court-dark disabled:cursor-wait focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+    <span class="in-[.htmx-request]:hidden">Create account</span>
+    <span class="hidden in-[.htmx-request]:inline">Creating account…</span>
+  </button>
+</form>

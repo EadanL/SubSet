@@ -1,15 +1,17 @@
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
+from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Q
 from django.db.models.functions import Lower
 
-from core.choices import Gender, SkillTier
+from core.choices import Gender, Position, SkillTier
 from core.models import TimeStampedModel, UUIDModel
 
 MIN_TIER = min(SkillTier.values)
 MAX_TIER = max(SkillTier.values)
+MAX_MAIN_POSITIONS = 2
 
 
 def normalize_email_address(email):
@@ -90,6 +92,18 @@ class User(UUIDModel, TimeStampedModel, AbstractBaseUser, PermissionsMixin):
     tier_flex_down = models.PositiveSmallIntegerField(default=0)
     tier_flex_up = models.PositiveSmallIntegerField(default=0)
     travel_radius_km = models.PositiveSmallIntegerField(null=True, blank=True)
+    # Positions the player usually plays (at most MAX_MAIN_POSITIONS), and other
+    # positions they are willing to sub at. A position can't be in both.
+    main_positions = ArrayField(
+        models.CharField(max_length=20, choices=Position.choices),
+        default=list,
+        blank=True,
+    )
+    sub_positions = ArrayField(
+        models.CharField(max_length=20, choices=Position.choices),
+        default=list,
+        blank=True,
+    )
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
@@ -138,6 +152,22 @@ class User(UUIDModel, TimeStampedModel, AbstractBaseUser, PermissionsMixin):
                     "Tier range must stay between Beginner and Elite."
                 ),
             ),
+            # Database backstops for the position rules in clean(). Duplicates
+            # within one list are caught by clean() only (a CHECK can't run the
+            # subquery that would need).
+            models.CheckConstraint(
+                condition=Q(main_positions__contained_by=Position.values)
+                & Q(sub_positions__contained_by=Position.values),
+                name="accounts_user_positions_valid",
+            ),
+            models.CheckConstraint(
+                condition=Q(main_positions__len__lte=MAX_MAIN_POSITIONS),
+                name="accounts_user_main_positions_max",
+            ),
+            models.CheckConstraint(
+                condition=~Q(main_positions__overlap=F("sub_positions")),
+                name="accounts_user_positions_not_in_both",
+            ),
         ]
 
     def __str__(self):
@@ -156,6 +186,7 @@ class User(UUIDModel, TimeStampedModel, AbstractBaseUser, PermissionsMixin):
         if self.account_type == AccountType.FULL and self.email is None:
             errors["email"] = "Full accounts require an email address."
         errors.update(self._tier_flex_errors())
+        errors.update(self._position_errors())
         if errors:
             raise ValidationError(errors)
 
@@ -183,6 +214,27 @@ class User(UUIDModel, TimeStampedModel, AbstractBaseUser, PermissionsMixin):
             )
         return errors
 
+    def _position_errors(self):
+        main = list(self.main_positions or [])
+        sub = list(self.sub_positions or [])
+        errors = {}
+        if len(set(main)) != len(main):
+            errors["main_positions"] = "Pick each position only once."
+        elif len(main) > MAX_MAIN_POSITIONS:
+            errors["main_positions"] = (
+                f"Pick at most {MAX_MAIN_POSITIONS} main positions."
+            )
+        if len(set(sub)) != len(sub):
+            errors["sub_positions"] = "Pick each position only once."
+        else:
+            # Invalid values are reported by clean_fields(); only label valid ones.
+            both = [Position(p).label for p in sub if p in main and p in Position]
+            if both:
+                errors["sub_positions"] = (
+                    f"Already one of your main positions: {', '.join(both)}."
+                )
+        return errors
+
     def save(self, *args, **kwargs):
         self.email = normalize_email_address(self.email)
         super().save(*args, **kwargs)
@@ -193,9 +245,11 @@ class User(UUIDModel, TimeStampedModel, AbstractBaseUser, PermissionsMixin):
 
     @property
     def is_onboarded(self):
-        """Full accounts are onboarded once skill tier and gender are set."""
+        """Full accounts are onboarded once skill tier, gender and at least one
+        main position are set."""
         return (
             self.account_type == AccountType.FULL
             and self.skill_tier is not None
             and bool(self.gender)
+            and bool(self.main_positions)
         )

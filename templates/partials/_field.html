@@ -1,0 +1,17 @@
+{% comment %}
+  One form field: label, input, help text, errors. Expects `field` (a BoundField).
+  Django adds aria-invalid and points aria-describedby at the `_helptext` and
+  `_error` ids used here.
+{% endcomment %}
+<div class="flex flex-col gap-2">
+  <label for="{{ field.id_for_label }}" class="font-medium text-ink">{{ field.label }}</label>
+  {{ field }}
+  {% if field.help_text %}
+    <p id="{{ field.auto_id }}_helptext" class="text-meta text-slate">{{ field.help_text }}</p>
+  {% endif %}
+  {% if field.errors %}
+    <ul id="{{ field.auto_id }}_error" class="flex flex-col gap-1 text-meta font-medium text-danger">
+      {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+</div>
