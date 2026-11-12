@@ -1,8 +1,8 @@
 {% comment %}
   Toast stack. Also the target for out-of-band updates: a fragment response can
-  include <div id="messages" hx-swap-oob="true">…</div> to replace it.
+  include this partial with oob=True to replace it.
 {% endcomment %}
-<div id="messages" aria-live="polite"
+<div id="messages" aria-live="polite"{% if oob %} hx-swap-oob="true"{% endif %}
      class="pointer-events-none fixed inset-x-0 top-3 z-40 flex flex-col items-center gap-2 px-5">
   {% for message in messages %}
     <div x-data="{ show: true }"

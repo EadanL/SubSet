@@ -1,0 +1,26 @@
+{% comment %}
+  Inline profile edit. Shares id="profile-card" with _profile_card.html: an
+  invalid save swaps this form back in with errors, a valid save swaps the card
+  in (see _profile_saved.html), and "Cancel" fetches the card.
+{% endcomment %}
+<form id="profile-card" method="post" action="{% url 'accounts:profile_edit' %}"
+      hx-post="{% url 'accounts:profile_edit' %}" hx-target="this" hx-swap="outerHTML"
+      hx-disabled-elt="find button[type=submit]"
+      novalidate
+      class="flex flex-col gap-8">
+  {% csrf_token %}
+  {% include "partials/_form_errors.html" %}
+  {% include "accounts/partials/_profile_fields.html" %}
+  <div class="flex flex-wrap items-center gap-3">
+    <button type="submit"
+            class="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full bg-court px-6 font-semibold text-surface hover:bg-court-dark disabled:cursor-wait focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+      <span class="in-[.htmx-request]:hidden">Save profile</span>
+      <span class="hidden in-[.htmx-request]:inline">Saving profile…</span>
+    </button>
+    <a href="{% url 'accounts:profile' %}"
+       hx-get="{% url 'accounts:profile_card' %}" hx-target="#profile-card" hx-swap="outerHTML"
+       class="inline-flex min-h-11 items-center justify-center rounded-full border border-field px-6 font-semibold text-ink hover:bg-hairline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+      Cancel
+    </a>
+  </div>
+</form>

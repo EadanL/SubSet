@@ -5,6 +5,7 @@ from django.core.mail import EmailMessage
 from django.urls import reverse
 
 from accounts.models import User
+from core.choices import Gender, SkillTier
 from core.mail import ReadableConsoleEmailBackend
 
 pytestmark = pytest.mark.django_db
@@ -65,9 +66,24 @@ class TestHome:
         # A growing text wrapper in each pane pins both buttons to the bottom.
         assert html.count('<div class="flex flex-1 flex-col gap-4">') == 2
 
-    def test_signed_in_sees_empty_dashboard(self, client, home_url):
+    def test_signed_in_without_profile_goes_to_onboarding(self, client, home_url):
         user = User.objects.create_user(
             "jordan@example.com", "c0rrect-Horse-battery", display_name="Jordan"
+        )
+        client.force_login(user)
+
+        response = client.get(home_url)
+
+        assert response.status_code == 302
+        assert response["Location"] == reverse("accounts:onboarding")
+
+    def test_onboarded_user_sees_empty_dashboard(self, client, home_url):
+        user = User.objects.create_user(
+            "jordan@example.com",
+            "c0rrect-Horse-battery",
+            display_name="Jordan",
+            gender=Gender.WOMAN,
+            skill_tier=SkillTier.NOVICE,
         )
         client.force_login(user)
 

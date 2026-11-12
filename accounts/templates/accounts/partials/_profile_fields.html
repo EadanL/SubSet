@@ -1,0 +1,57 @@
+{% comment %}
+  Profile fields shared by onboarding and the inline profile edit. The wrapper's
+  Alpine state mirrors the level and range inputs to show a live preview of the
+  levels you'll sub at; the server still validates the range.
+{% endcomment %}
+{% with choices=form.fields.skill_tier.choices %}
+{% with first=choices|first last=choices|last %}
+<div class="flex flex-col gap-8"
+     x-data="{
+       tier: Number('{{ form.skill_tier.value|default_if_none:''|escapejs }}') || null,
+       down: Number('{{ form.tier_flex_down.value|default_if_none:''|escapejs }}') || 0,
+       up: Number('{{ form.tier_flex_up.value|default_if_none:''|escapejs }}') || 0,
+       min: {{ first.0 }},
+       max: {{ last.0 }},
+       labels: { {% for value, label in choices %}{{ value }}: '{{ label|escapejs }}', {% endfor %} },
+       get preview() {
+         if (!this.tier) return 'Choose your level to see the range.';
+         const low = this.tier - (this.down || 0);
+         const high = this.tier + (this.up || 0);
+         if (low < this.min || high > this.max) return `That goes past the scale: from ${this.labels[this.tier]} you can go ${this.tier - this.min} down and ${this.max - this.tier} up.`;
+         if (low === high) return `You'll sub at ${this.labels[low]} only.`;
+         return `You'll sub from ${this.labels[low]} to ${this.labels[high]}.`;
+       }
+     }">
+  <section class="flex flex-col gap-6 border-t border-hairline pt-8">
+    <h2 class="font-serif text-h2 font-semibold">About you</h2>
+    {% include "partials/_field.html" with field=form.display_name %}
+    {% include "partials/_choice_field.html" with field=form.gender layout="grid" %}
+  </section>
+
+  <section class="flex flex-col gap-6 border-t border-hairline pt-8">
+    <h2 class="font-serif text-h2 font-semibold">Your level</h2>
+    {% include "partials/_choice_field.html" with field=form.skill_tier layout="rows" %}
+  </section>
+
+  <section class="flex flex-col gap-6 border-t border-hairline pt-8">
+    <div class="flex flex-col gap-2">
+      <h2 class="font-serif text-h2 font-semibold">Range you'll sub</h2>
+      <p class="font-light text-slate">How far from your own level you're happy to play. Leave both at 0 to sub at your level only.</p>
+    </div>
+    <div class="grid gap-6 sm:grid-cols-2">
+      {% include "partials/_field.html" with field=form.tier_flex_down %}
+      {% include "partials/_field.html" with field=form.tier_flex_up %}
+    </div>
+    <p aria-live="polite" x-text="preview" class="border-l-4 border-court bg-surface px-4 py-3">
+      Choose your level to see the range.
+    </p>
+  </section>
+
+  <section class="flex flex-col gap-6 border-t border-hairline pt-8">
+    <h2 class="font-serif text-h2 font-semibold">Getting there</h2>
+    {% include "partials/_field.html" with field=form.travel_radius_km %}
+    {% include "partials/_field.html" with field=form.phone %}
+  </section>
+</div>
+{% endwith %}
+{% endwith %}

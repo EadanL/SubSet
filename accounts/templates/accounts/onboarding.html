@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Set up your profile | SubSet{% endblock %}
+
+{% block content %}
+<section class="mx-auto flex w-full max-w-xl flex-col gap-8 px-5 py-14 md:py-20">
+  <div class="flex flex-col gap-3">
+    <h1 class="font-serif text-h1 font-semibold">Set up your profile</h1>
+    <p class="font-light text-slate">This is how we match you with open spots at your level. You can change it any time.</p>
+  </div>
+  {% include "accounts/partials/_onboarding_form.html" %}
+</section>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block title %}Your profile | SubSet{% endblock %}
+
+{% block content %}
+<section class="mx-auto flex w-full max-w-2xl flex-col gap-8 px-5 py-14 md:py-20">
+  <h1 class="font-serif text-h1 font-semibold">Your profile</h1>
+  {% include "accounts/partials/_profile_card.html" %}
+</section>
+{% endblock %}

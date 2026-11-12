@@ -1,0 +1,6 @@
+{% comment %}
+  HTMX response to a valid inline save: the card replaces the form, and the
+  "Profile saved" toast updates #messages out of band.
+{% endcomment %}
+{% include "accounts/partials/_profile_card.html" %}
+{% include "partials/_messages.html" with oob=True %}

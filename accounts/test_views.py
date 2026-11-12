@@ -64,22 +64,22 @@ class TestSignup:
         assert response.status_code == 302
         assert response["Location"] == reverse("home")
 
-    def test_htmx_valid_submit_creates_account_and_client_redirects(self, client):
+    def test_htmx_valid_submit_creates_account_and_goes_to_onboarding(self, client):
         response = client.post(self.url, signup_data(), headers=HTMX)
 
         assert response.status_code == 200
-        assert response["HX-Redirect"] == reverse("home")
+        assert response["HX-Redirect"] == reverse("accounts:onboarding")
         user = User.objects.get(email="new.player@example.com")
         assert user.account_type == AccountType.FULL
         assert user.display_name == "New Player"
         assert client.session["_auth_user_id"] == str(user.pk)
         assert "Account created" in message_texts(response)
 
-    def test_plain_valid_submit_redirects(self, client):
+    def test_plain_valid_submit_redirects_to_onboarding(self, client):
         response = client.post(self.url, signup_data())
 
         assert response.status_code == 302
-        assert response["Location"] == reverse("home")
+        assert response["Location"] == reverse("accounts:onboarding")
 
     @pytest.mark.parametrize("email", ["jordan@example.com", "JORDAN@Example.com"])
     def test_registered_email_shows_error(self, client, full_user, email):
@@ -272,9 +272,10 @@ class TestNav:
     def test_signed_in_nav_shows_logout_form(self, client, full_user):
         client.force_login(full_user)
 
-        html = client.get(reverse("home")).content.decode()
+        html = client.get(reverse("home"), follow=True).content.decode()
 
         assert f'action="{reverse("accounts:logout")}"' in html
+        assert f'href="{reverse("accounts:profile")}"' in html
         assert f'href="{reverse("accounts:login")}"' not in html
 
 

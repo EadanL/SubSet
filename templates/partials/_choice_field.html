@@ -1,0 +1,36 @@
+{% comment %}
+  Radio choices as tappable options. Expects `field` (a BoundField with a
+  RadioSelect widget) and `layout`: "rows" (a hairline list, selected row gets a
+  court-green left edge) or "grid" (two columns of bordered options).
+{% endcomment %}
+<fieldset class="flex flex-col gap-3"
+          {% if field.help_text or field.errors %}aria-describedby="{% if field.help_text %}{{ field.auto_id }}_helptext{% endif %}{% if field.errors %} {{ field.auto_id }}_error{% endif %}"{% endif %}>
+  <legend class="font-medium text-ink">{{ field.label }}</legend>
+  {% if field.help_text %}
+    <p id="{{ field.auto_id }}_helptext" class="text-meta text-slate">{{ field.help_text }}</p>
+  {% endif %}
+  {% if layout == "grid" %}
+    <div class="grid gap-2 sm:grid-cols-2">
+      {% for radio in field %}
+        <label for="{{ radio.id_for_label }}"
+               class="flex min-h-11 cursor-pointer items-center gap-3 rounded-xs border border-field bg-surface px-4 py-3 has-checked:border-court has-checked:bg-paper has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-court">
+          {{ radio.tag }}<span>{{ radio.choice_label }}</span>
+        </label>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="flex flex-col divide-y divide-hairline border border-hairline bg-surface">
+      {% for radio in field %}
+        <label for="{{ radio.id_for_label }}"
+               class="flex min-h-11 cursor-pointer items-center gap-3 border-l-4 border-l-transparent px-4 py-3 has-checked:border-l-court has-checked:bg-paper has-focus-visible:outline-2 has-focus-visible:-outline-offset-2 has-focus-visible:outline-court">
+          {{ radio.tag }}<span>{{ radio.choice_label }}</span>
+        </label>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% if field.errors %}
+    <ul id="{{ field.auto_id }}_error" class="flex flex-col gap-1 text-meta font-medium text-danger">
+      {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+</fieldset>
