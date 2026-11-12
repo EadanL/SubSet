@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}SubSet: find a sub who fits your volleyball league{% endblock %}
+
+{% block content %}
+{% if user.is_authenticated %}
+  <section class="mx-auto flex max-w-6xl flex-col gap-12 px-5 py-14 md:py-20">
+    <h1 class="font-serif text-h1 font-semibold">Your games</h1>
+    <div class="flex flex-col items-center gap-2 border-y border-hairline px-5 py-16 text-center">
+      <p class="font-serif text-h2 font-semibold">No games yet</p>
+      <p class="max-w-md font-light text-slate">When your league opens spots you fit, they'll show up here.</p>
+    </div>
+  </section>
+{% else %}
+  {% url 'accounts:signup' as signup_url %}
+  <section class="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:py-20 lg:grid-cols-[1.4fr_1fr] lg:items-center">
+    <div class="flex max-w-2xl flex-col gap-6">
+      <h1 class="font-serif text-h1 font-semibold md:text-display">Find a sub who fits your league.</h1>
+      <p class="max-w-prose text-lg font-light text-slate">
+        Can't make a game? Post the spot and players who match your league's level, position and rules
+        can reply. You pick who plays. Want more court time? Pick up open spots near you.
+      </p>
+    </div>
+
+    <div x-data="{ mode: 'need' }" class="flex flex-col gap-6 border border-hairline bg-surface p-7 md:p-8">
+      <div role="group" aria-label="What are you looking for?" class="flex gap-1 rounded-full bg-paper p-1">
+        <button type="button" x-on:click="mode = 'need'"
+                aria-pressed="true" x-bind:aria-pressed="mode === 'need'"
+                x-bind:class="{ 'bg-court text-surface': mode === 'need', 'text-ink hover:bg-hairline': mode !== 'need' }"
+                class="min-h-11 flex-1 cursor-pointer rounded-full px-4 font-medium bg-court text-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+          I need a sub
+        </button>
+        <button type="button" x-on:click="mode = 'want'"
+                aria-pressed="false" x-bind:aria-pressed="mode === 'want'"
+                x-bind:class="{ 'bg-court text-surface': mode === 'want', 'text-ink hover:bg-hairline': mode !== 'want' }"
+                class="min-h-11 flex-1 cursor-pointer rounded-full px-4 font-medium text-ink hover:bg-hairline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+          I want to sub
+        </button>
+      </div>
+
+      {% comment %}
+        Both panes share one grid cell, so the panel is always as tall as the
+        taller pane; the inactive one is `invisible` (keeps its space) rather
+        than `hidden`, so switching modes never shifts the page. Each pane's text
+        wrapper is `flex-1`, pinning both buttons to the same bottom position.
+      {% endcomment %}
+      <div class="grid">
+        <div x-bind:class="{ 'invisible': mode !== 'need' }"
+             class="col-start-1 row-start-1 flex flex-col gap-4">
+          <div class="flex flex-1 flex-col gap-4">
+            <h2 class="font-serif text-h2 font-semibold">Short a player?</h2>
+            <p class="font-light text-slate">
+              Mark yourself out for a game. Players who are free, eligible for your league and at the right
+              level get an alert.
+            </p>
+          </div>
+          <a href="{{ signup_url|default:'#how-it-works' }}"
+             class="inline-flex min-h-11 items-center justify-center rounded-full bg-court px-6 font-semibold text-surface hover:bg-court-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+            Sign up to request a sub
+          </a>
+        </div>
+
+        <div x-bind:class="{ 'invisible': mode !== 'want' }"
+             class="invisible col-start-1 row-start-1 flex flex-col gap-4">
+          <div class="flex flex-1 flex-col gap-4">
+            <h2 class="font-serif text-h2 font-semibold">Want to play more?</h2>
+            <p class="font-light text-slate">
+              Tell us your nights, positions and level. We'll show open spots in leagues you're eligible for.
+            </p>
+          </div>
+          <a href="{{ signup_url|default:'#how-it-works' }}"
+             class="inline-flex min-h-11 items-center justify-center rounded-full bg-court px-6 font-semibold text-surface hover:bg-court-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+            Sign up to find spots
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how-it-works" class="border-t border-hairline">
+    <div class="mx-auto flex max-w-6xl flex-col gap-12 px-5 py-14 md:py-20">
+      <h2 class="font-serif text-h1 font-semibold">How it works</h2>
+      <ol class="grid gap-10 md:grid-cols-3">
+        <li class="flex flex-col gap-3 border-t border-ink pt-5">
+          <span aria-hidden="true" class="text-h1 font-semibold font-stretch-condensed tabular-nums text-court">1</span>
+          <h3 class="font-serif text-h2 font-semibold">Mark yourself out</h3>
+          <p class="font-light text-slate">Tap "I can't make it" on your game. The spot opens with your position and your league's rules.</p>
+        </li>
+        <li class="flex flex-col gap-3 border-t border-ink pt-5">
+          <span aria-hidden="true" class="text-h1 font-semibold font-stretch-condensed tabular-nums text-court">2</span>
+          <h3 class="font-serif text-h2 font-semibold">Players who fit reply</h3>
+          <p class="font-light text-slate">Subs who are free, eligible and at the right level can accept, decline or say maybe.</p>
+        </li>
+        <li class="flex flex-col gap-3 border-t border-ink pt-5">
+          <span aria-hidden="true" class="text-h1 font-semibold font-stretch-condensed tabular-nums text-court">3</span>
+          <h3 class="font-serif text-h2 font-semibold">You pick who plays</h3>
+          <p class="font-light text-slate">Choose from the replies. Everyone else stays on as a backup.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+{% endif %}
+{% endblock %}

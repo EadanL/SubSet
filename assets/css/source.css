@@ -1,0 +1,58 @@
+/*
+ * Tailwind input file: the project's only CSS (approved exception, see CLAUDE.md).
+ * Allowed here: the Tailwind import, @font-face for self-hosted fonts, and the
+ * @theme design tokens from phase_2b_spec.md section 3. Everything else is
+ * Tailwind utility classes in templates.
+ *
+ * Built by django-tailwind-cli into static/css/tailwind.css; font URLs are
+ * relative to that output file.
+ */
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Archivo";
+  src: url("../vendor/fonts/archivo-latin-wdth-normal.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("../vendor/fonts/source-serif-4-latin-wght-normal.woff2") format("woff2-variations");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  /* Colour: warm paper, charcoal ink, court green primary, ball yellow highlight */
+  --color-paper: #faf7f2;
+  --color-surface: #ffffff;
+  --color-ink: #23262b;
+  --color-slate: #5b6472;
+  --color-court: #1e6b52;
+  --color-court-dark: #16503d;
+  --color-ball: #f5c518;
+  --color-danger: #b42318;
+  --color-hairline: #e4ded3;
+  --color-field: #8a8478;
+
+  /* Type: serif headings, Archivo for body/UI and condensed numerals */
+  --font-sans: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Source Serif 4", ui-serif, Georgia, serif;
+
+  --text-display: 3.25rem;
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.015em;
+  --text-h1: 2.25rem;
+  --text-h1--line-height: 1.2;
+  --text-h1--letter-spacing: -0.01em;
+  --text-h2: 1.375rem;
+  --text-h2--line-height: 1.3;
+  --text-base: 1rem;
+  --text-base--line-height: 1.55;
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.4;
+}

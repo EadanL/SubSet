@@ -1,0 +1,49 @@
+{% comment %}
+  Auth links use `{% url ... as var %}`, which renders nothing (instead of
+  raising) until the route exists, so each link appears once its view ships.
+{% endcomment %}
+{% url 'accounts:login' as login_url %}
+{% url 'accounts:signup' as signup_url %}
+{% url 'accounts:profile' as profile_url %}
+{% url 'accounts:logout' as logout_url %}
+<header class="border-b border-hairline">
+  <nav aria-label="Main" class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3">
+    <a href="{% url 'home' %}"
+       class="inline-flex min-h-11 items-center font-serif text-h2 font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-court">
+      SubSet
+    </a>
+
+    <div class="flex items-center gap-1 sm:gap-2">
+      {% if user.is_authenticated %}
+        {% if profile_url %}
+          <a href="{{ profile_url }}"
+             class="inline-flex min-h-11 items-center rounded-full px-4 font-medium text-ink hover:bg-hairline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+            Profile
+          </a>
+        {% endif %}
+        {% if logout_url %}
+          <form method="post" action="{{ logout_url }}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="inline-flex min-h-11 cursor-pointer items-center rounded-full px-4 font-medium text-ink hover:bg-hairline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+              Log out
+            </button>
+          </form>
+        {% endif %}
+      {% else %}
+        {% if login_url %}
+          <a href="{{ login_url }}"
+             class="inline-flex min-h-11 items-center rounded-full px-4 font-medium text-ink hover:bg-hairline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+            Log in
+          </a>
+        {% endif %}
+        {% if signup_url %}
+          <a href="{{ signup_url }}"
+             class="inline-flex min-h-11 items-center rounded-full bg-court px-5 font-semibold text-surface hover:bg-court-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+            Sign up
+          </a>
+        {% endif %}
+      {% endif %}
+    </div>
+  </nav>
+</header>
