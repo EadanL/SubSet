@@ -154,6 +154,7 @@ TAILWIND_CLI_DIST_CSS = "css/tailwind.css"
 
 MAILERS = {
     "default": {
-        "BACKEND": "django.core.mail.backends.console.EmailBackend",
+        # Prints the plain message text so links copy intact (see core/mail.py).
+        "BACKEND": "core.mail.ReadableConsoleEmailBackend",
     },
 }

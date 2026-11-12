@@ -1,7 +1,11 @@
+import io
+
 import pytest
+from django.core.mail import EmailMessage
 from django.urls import reverse
 
 from accounts.models import User
+from core.mail import ReadableConsoleEmailBackend
 
 pytestmark = pytest.mark.django_db
 
@@ -80,3 +84,27 @@ class TestHome:
 
     def test_rejects_post(self, client, home_url):
         assert client.post(home_url).status_code == 405
+
+
+class TestReadableConsoleEmailBackend:
+    def test_prints_long_links_whole_on_one_line(self):
+        link = (
+            "http://127.0.0.1:8000/accounts/password-reset/"
+            "MTM1YTVkMDktODBjNC00NGYwLWE3YTgtMzk2ZWQ5YmVlNDM4/"
+            "dhy91j-3b25dca752d1575863c89bc4a0dad564/"
+        )
+        stream = io.StringIO()
+        message = EmailMessage(
+            subject="Reset your SubSet password",
+            body=f"Set a new password here:\n\n{link}\n",
+            from_email="webmaster@localhost",
+            to=["jordan@example.com"],
+        )
+
+        ReadableConsoleEmailBackend(stream=stream).send_messages([message])
+
+        output = stream.getvalue()
+        assert link in output.splitlines()
+        assert "=\n" not in output
+        assert "Subject: Reset your SubSet password" in output
+        assert "To: jordan@example.com" in output
