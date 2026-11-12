@@ -6,28 +6,22 @@
 <form method="post" action="{% url 'accounts:login' %}"
       hx-post="{% url 'accounts:login' %}" hx-target="this" hx-swap="outerHTML"
       hx-disabled-elt="find button[type=submit]"
-      x-data="{ show: false }"
       novalidate
       class="flex flex-col gap-6">
   {% csrf_token %}
   {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
   {% include "partials/_form_errors.html" %}
   {% include "partials/_field.html" with field=form.username %}
-  {% include "partials/_field.html" with field=form.password %}
+  {% include "partials/_password_field.html" with field=form.password %}
 
-  <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-    <button type="button" x-on:click="show = !show" x-bind:aria-pressed="show"
-            x-text="show ? 'Hide password' : 'Show password'"
-            class="inline-flex min-h-11 cursor-pointer items-center font-medium text-court underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
-      Show password
-    </button>
-    {% if reset_url %}
+  {% if reset_url %}
+    <div class="flex justify-end">
       <a href="{{ reset_url }}"
          class="inline-flex min-h-11 items-center font-medium text-court underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
         Forgot your password?
       </a>
-    {% endif %}
-  </div>
+    </div>
+  {% endif %}
 
   <button type="submit"
           class="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full bg-court px-6 font-semibold text-surface hover:bg-court-dark disabled:cursor-wait focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">

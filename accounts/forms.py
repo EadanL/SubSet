@@ -1,5 +1,10 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, BaseUserCreationForm
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    BaseUserCreationForm,
+    PasswordResetForm,
+    SetPasswordForm,
+)
 from django.core.exceptions import ValidationError
 
 from core.forms import TailwindFormMixin
@@ -12,7 +17,8 @@ PASSWORD_HELP = (
     "name or email."
 )
 
-# Alpine bindings for the show/hide toggle; the state lives on the <form>.
+# Alpine binding for the eye toggle; `show` lives on the field's wrapper in
+# partials/_password_field.html.
 SHOW_PASSWORD_ATTRS = {"x-bind:type": "show ? 'text' : 'password'"}
 
 # register_full_account() keys password errors as "password"; this form shows
@@ -90,3 +96,25 @@ class EmailAuthenticationForm(TailwindFormMixin, AuthenticationForm):
             attrs={**username.widget.attrs, "autocomplete": "email"}
         )
         self.fields["password"].widget.attrs.update(SHOW_PASSWORD_ATTRS)
+
+
+class EmailPasswordResetForm(TailwindFormMixin, PasswordResetForm):
+    """Django's reset form already skips inactive users and guests (unusable
+    passwords) and matches email case-insensitively."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["email"].widget.attrs["autofocus"] = True
+
+
+class NewPasswordForm(TailwindFormMixin, SetPasswordForm):
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(user, *args, **kwargs)
+        password1 = self.fields["new_password1"]
+        password1.help_text = PASSWORD_HELP
+        password1.widget.attrs.update({**SHOW_PASSWORD_ATTRS, "x-model": "p1"})
+
+        password2 = self.fields["new_password2"]
+        password2.label = "Confirm new password"
+        password2.help_text = ""
+        password2.widget.attrs.update({**SHOW_PASSWORD_ATTRS, "x-model": "p2"})

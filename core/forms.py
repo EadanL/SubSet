@@ -7,6 +7,10 @@ INPUT_CLASSES = (
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court"
 )
 
+# Room for the eye toggle in partials/_password_field.html, and Edge's built-in
+# reveal button hidden so there aren't two.
+PASSWORD_INPUT_CLASSES = "pr-11 [&::-ms-reveal]:hidden"
+
 _UNSTYLED_INPUT_TYPES = {"checkbox", "radio", "hidden"}
 
 
@@ -21,5 +25,7 @@ class TailwindFormMixin:
                 isinstance(widget, forms.widgets.Input)
                 and widget.input_type not in _UNSTYLED_INPUT_TYPES
             ):
-                existing = widget.attrs.get("class", "")
-                widget.attrs["class"] = f"{INPUT_CLASSES} {existing}".strip()
+                classes = [INPUT_CLASSES, widget.attrs.get("class", "")]
+                if isinstance(widget, forms.PasswordInput):
+                    classes.append(PASSWORD_INPUT_CLASSES)
+                widget.attrs["class"] = " ".join(c for c in classes if c)

@@ -10,7 +10,12 @@ from django.views.generic import FormView
 
 from core.htmx import HtmxFormMixin
 
-from .forms import EmailAuthenticationForm, SignupForm
+from .forms import (
+    EmailAuthenticationForm,
+    EmailPasswordResetForm,
+    NewPasswordForm,
+    SignupForm,
+)
 
 
 @method_decorator(sensitive_post_parameters("password1", "password2"), name="dispatch")
@@ -48,3 +53,29 @@ class LogoutView(auth_views.LogoutView):
         response = super().post(request, *args, **kwargs)
         messages.success(request, "Logged out")
         return response
+
+
+# Password reset: Django's built-in flow as full pages (no HTMX), pointed at
+# this app's namespaced URLs and templates.
+
+
+class PasswordResetView(auth_views.PasswordResetView):
+    form_class = EmailPasswordResetForm
+    template_name = "accounts/password_reset_form.html"
+    email_template_name = "accounts/email/password_reset_email.txt"
+    subject_template_name = "accounts/email/password_reset_subject.txt"
+    success_url = reverse_lazy("accounts:password_reset_done")
+
+
+class PasswordResetDoneView(auth_views.PasswordResetDoneView):
+    template_name = "accounts/password_reset_done.html"
+
+
+class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+    form_class = NewPasswordForm
+    template_name = "accounts/password_reset_confirm.html"
+    success_url = reverse_lazy("accounts:password_reset_complete")
+
+
+class PasswordResetCompleteView(auth_views.PasswordResetCompleteView):
+    template_name = "accounts/password_reset_complete.html"

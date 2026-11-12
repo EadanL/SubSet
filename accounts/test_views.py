@@ -1,7 +1,12 @@
+import re
+
 import pytest
+from django.contrib.auth.tokens import default_token_generator
 from django.contrib.messages import get_messages
 from django.core.exceptions import ValidationError
 from django.urls import reverse
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 
 from accounts.models import AccountType, User
 
@@ -271,3 +276,155 @@ class TestNav:
 
         assert f'action="{reverse("accounts:logout")}"' in html
         assert f'href="{reverse("accounts:login")}"' not in html
+
+
+class TestPasswordReset:
+    url = reverse("accounts:password_reset")
+    done_url = reverse("accounts:password_reset_done")
+
+    @staticmethod
+    def reset_link(email):
+        match = re.search(
+            r"https?://[^/\s]+(/accounts/password-reset/\S+/)", email.body
+        )
+        assert match, email.body
+        return match.group(1)
+
+    def test_login_page_links_to_reset(self, client):
+        html = client.get(reverse("accounts:login")).content.decode()
+
+        assert f'href="{self.url}"' in html
+        assert "Forgot your password?" in html
+
+    def test_get_renders_form(self, client):
+        response = client.get(self.url)
+
+        html = response.content.decode()
+        assert response.status_code == 200
+        assert "Send reset link" in html
+        assert ">Email</label>" in html
+
+    def test_sends_one_email_for_full_account_with_mixed_case(
+        self, client, full_user, mailoutbox
+    ):
+        response = client.post(self.url, {"email": "JORDAN@Example.com"})
+
+        assert response.status_code == 302
+        assert response["Location"] == self.done_url
+        assert len(mailoutbox) == 1
+        email = mailoutbox[0]
+        assert email.to == ["jordan@example.com"]
+        assert email.subject == "Reset your SubSet password"
+        assert "Hi Jordan," in email.body
+        assert "&#x27;" not in email.body and "&amp;" not in email.body
+        self.reset_link(email)
+
+    @pytest.mark.parametrize("case", ["unknown", "guest", "inactive"])
+    def test_no_email_but_same_redirect_for_other_addresses(
+        self, client, mailoutbox, case
+    ):
+        User.objects.create_guest("Sam", email="sam@example.com")
+        User.objects.create_user(
+            "off@example.com", PASSWORD, display_name="Off", is_active=False
+        )
+        email = {
+            "unknown": "nobody@example.com",
+            "guest": "sam@example.com",
+            "inactive": "off@example.com",
+        }[case]
+
+        response = client.post(self.url, {"email": email})
+
+        assert response["Location"] == self.done_url
+        assert mailoutbox == []
+
+    def test_full_flow_sets_new_password_and_link_works_once(
+        self, client, full_user, mailoutbox
+    ):
+        client.post(self.url, {"email": "jordan@example.com"})
+        link = self.reset_link(mailoutbox[0])
+
+        # Django swaps the token for a session marker and redirects.
+        set_password_url = client.get(link)["Location"]
+        form_page = client.get(set_password_url).content.decode()
+        assert "Set a new password" in form_page
+
+        mismatch = client.post(
+            set_password_url,
+            {"new_password1": "Fresh-Serve-42", "new_password2": "Other-Serve-42"},
+        )
+        assert "didn’t match" in mismatch.content.decode()
+
+        done = client.post(
+            set_password_url,
+            {"new_password1": "Fresh-Serve-42", "new_password2": "Fresh-Serve-42"},
+        )
+        assert done["Location"] == reverse("accounts:password_reset_complete")
+        full_user.refresh_from_db()
+        assert full_user.check_password("Fresh-Serve-42")
+        assert not full_user.check_password(PASSWORD)
+
+        reused = client.get(link, follow=True).content.decode()
+        assert "This link no longer works" in reused
+        assert "Request a new link" in reused
+
+    def test_tampered_link_shows_invalid_page(self, client, full_user):
+        url = reverse(
+            "accounts:password_reset_confirm",
+            kwargs={"uidb64": "bm9wZQ", "token": "bad-token"},
+        )
+
+        html = client.get(url).content.decode()
+
+        assert "This link no longer works" in html
+
+    def test_complete_page_links_to_login(self, client):
+        html = client.get(reverse("accounts:password_reset_complete")).content.decode()
+
+        assert "New password set" in html
+        assert f'href="{reverse("accounts:login")}"' in html
+
+
+class TestPasswordEyeToggle:
+    """Every password field has its own eye button inside the input, and the old
+    "Show password(s)" text buttons are gone."""
+
+    @staticmethod
+    def assert_eye_toggles(html, count):
+        assert html.count('aria-label="Show password"') == count
+        assert html.count('x-data="{ show: false }"') == count
+        assert html.count('type="password"') == count
+        assert html.count("[&amp;::-ms-reveal]:hidden") == count
+        assert "x-text=\"show ? 'Hide password" not in html
+
+    def test_login_has_one_toggle(self, client):
+        html = client.get(reverse("accounts:login")).content.decode()
+
+        self.assert_eye_toggles(html, 1)
+
+    def test_signup_has_one_toggle_per_field(self, client):
+        html = client.get(reverse("accounts:signup")).content.decode()
+
+        self.assert_eye_toggles(html, 2)
+
+    def test_set_new_password_has_one_toggle_per_field(self, client, full_user):
+        url = reverse(
+            "accounts:password_reset_confirm",
+            kwargs={
+                "uidb64": urlsafe_base64_encode(force_bytes(full_user.pk)),
+                "token": default_token_generator.make_token(full_user),
+            },
+        )
+
+        html = client.get(url, follow=True).content.decode()
+
+        self.assert_eye_toggles(html, 2)
+
+    def test_toggle_survives_htmx_error_rerender(self, client):
+        response = client.post(
+            reverse("accounts:login"),
+            {"username": "nobody@example.com", "password": "nope"},
+            headers=HTMX,
+        )
+
+        self.assert_eye_toggles(assert_fragment(response), 1)
