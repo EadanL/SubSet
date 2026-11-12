@@ -8,7 +8,7 @@ from django.urls import reverse
 
 from accounts.models import AccountType, User
 from accounts.services import complete_onboarding, register_full_account
-from core.choices import Gender, SkillTier
+from core.choices import Gender, Position, SkillTier
 
 pytestmark = pytest.mark.django_db
 
@@ -331,23 +331,100 @@ class TestTierFlexRule:
         )
 
 
+class TestPositionRules:
+    @pytest.mark.parametrize(
+        "main, sub",
+        [
+            ([], []),
+            ([Position.SETTER], []),
+            ([Position.SETTER, Position.LIBERO], [Position.OPPOSITE]),
+            ([Position.ALL_AROUND], [Position.SETTER, Position.MIDDLE_BLOCKER]),
+        ],
+    )
+    def test_valid_combinations(self, full_user, main, sub):
+        full_user.main_positions, full_user.sub_positions = main, sub
+
+        full_user.full_clean()
+        full_user.save()
+
+    @pytest.mark.parametrize(
+        "main, sub, error_fields",
+        [
+            (
+                [Position.SETTER, Position.LIBERO, Position.OPPOSITE],
+                [],
+                {"main_positions"},
+            ),
+            ([Position.SETTER, Position.SETTER], [], {"main_positions"}),
+            ([], [Position.LIBERO, Position.LIBERO], {"sub_positions"}),
+            ([Position.SETTER], [Position.SETTER], {"sub_positions"}),
+            (["goalkeeper"], [], {"main_positions"}),
+            ([], ["goalkeeper"], {"sub_positions"}),
+        ],
+    )
+    def test_clean_reports_field_errors_once(self, full_user, main, sub, error_fields):
+        full_user.main_positions, full_user.sub_positions = main, sub
+
+        with pytest.raises(ValidationError) as exc_info:
+            full_user.full_clean()
+
+        # Field-keyed errors only, no duplicate constraint message.
+        assert set(exc_info.value.message_dict) == error_fields
+
+    def test_overlap_message_names_the_positions(self, full_user):
+        full_user.main_positions = [Position.SETTER, Position.LIBERO]
+        full_user.sub_positions = [Position.LIBERO, Position.SETTER]
+
+        with pytest.raises(ValidationError) as exc_info:
+            full_user.full_clean()
+
+        assert exc_info.value.message_dict["sub_positions"] == [
+            "Already one of your main positions: Libero, Setter."
+        ]
+
+    @pytest.mark.parametrize(
+        "main, sub",
+        [
+            ([Position.SETTER, Position.LIBERO, Position.OPPOSITE], []),
+            ([Position.SETTER], [Position.SETTER]),
+            (["goalkeeper"], []),
+            ([], ["goalkeeper"]),
+        ],
+    )
+    def test_database_rejects_invalid_positions(self, full_user, main, sub):
+        # update() skips clean(), so only the CheckConstraints apply.
+        assert_integrity_error(
+            lambda: User.objects.filter(pk=full_user.pk).update(
+                main_positions=main, sub_positions=sub
+            )
+        )
+
+
 class TestIsOnboarded:
     def test_new_full_account_is_not_onboarded(self, full_user):
         assert not full_user.is_onboarded
 
     @pytest.mark.parametrize(
-        "tier, gender",
-        [(SkillTier.NOVICE, ""), (None, Gender.WOMAN)],
+        "tier, gender, main",
+        [
+            (SkillTier.NOVICE, "", [Position.SETTER]),
+            (None, Gender.WOMAN, [Position.SETTER]),
+            (SkillTier.NOVICE, Gender.WOMAN, []),
+        ],
     )
-    def test_requires_both_tier_and_gender(self, full_user, tier, gender):
+    def test_requires_tier_gender_and_main_position(
+        self, full_user, tier, gender, main
+    ):
         full_user.skill_tier = tier
         full_user.gender = gender
+        full_user.main_positions = main
 
         assert not full_user.is_onboarded
 
-    def test_tier_and_gender_complete_onboarding(self, full_user):
+    def test_tier_gender_and_main_position_complete_onboarding(self, full_user):
         full_user.skill_tier = SkillTier.NOVICE
         full_user.gender = Gender.PREFER_NOT_TO_SAY
+        full_user.main_positions = [Position.ALL_AROUND]
 
         assert full_user.is_onboarded
 
@@ -355,6 +432,7 @@ class TestIsOnboarded:
         guest = User.objects.create_guest("Sam", phone="555-0100")
         guest.skill_tier = SkillTier.NOVICE
         guest.gender = Gender.WOMAN
+        guest.main_positions = [Position.SETTER]
 
         assert not guest.is_onboarded
 
@@ -419,11 +497,19 @@ class TestRegisterFullAccount:
 
 
 class TestCompleteOnboarding:
+    REQUIRED = {
+        "gender": Gender.MAN,
+        "skill_tier": SkillTier.NOVICE,
+        "main_positions": [Position.SETTER],
+    }
+
     def test_saves_profile_and_onboards(self, full_user):
         complete_onboarding(
             full_user,
             gender=Gender.WOMAN,
             skill_tier=SkillTier.INTERMEDIATE,
+            main_positions=[Position.SETTER],
+            sub_positions=[Position.LIBERO],
             tier_flex_down=1,
             tier_flex_up=1,
             travel_radius_km=25,
@@ -435,13 +521,35 @@ class TestCompleteOnboarding:
         assert full_user.is_onboarded
         assert full_user.gender == Gender.WOMAN
         assert full_user.skill_tier == SkillTier.INTERMEDIATE
+        assert full_user.main_positions == [Position.SETTER]
+        assert full_user.sub_positions == [Position.LIBERO]
         assert (full_user.tier_flex_down, full_user.tier_flex_up) == (1, 1)
         assert full_user.travel_radius_km == 25
         assert full_user.phone == "555-0100"
         assert full_user.display_name == "Jordan K"
 
+    def test_positions_are_deduplicated_and_ordered(self, full_user):
+        complete_onboarding(
+            full_user,
+            gender=Gender.MAN,
+            skill_tier=SkillTier.NOVICE,
+            main_positions=[Position.LIBERO, Position.SETTER, Position.LIBERO],
+            sub_positions=[Position.ALL_AROUND, Position.OPPOSITE],
+        )
+
+        full_user.refresh_from_db()
+        assert full_user.main_positions == [Position.SETTER, Position.LIBERO]
+        assert full_user.sub_positions == [Position.OPPOSITE, Position.ALL_AROUND]
+
+    def test_sub_positions_are_optional(self, full_user):
+        complete_onboarding(full_user, **self.REQUIRED)
+
+        full_user.refresh_from_db()
+        assert full_user.sub_positions == []
+        assert full_user.is_onboarded
+
     def test_keeps_display_name_when_omitted(self, full_user):
-        complete_onboarding(full_user, gender=Gender.MAN, skill_tier=SkillTier.NOVICE)
+        complete_onboarding(full_user, **self.REQUIRED)
 
         full_user.refresh_from_db()
         assert full_user.display_name == "Jordan"
@@ -449,22 +557,28 @@ class TestCompleteOnboarding:
     def test_updates_timestamp(self, full_user):
         before = full_user.updated_at
 
-        complete_onboarding(full_user, gender=Gender.MAN, skill_tier=SkillTier.NOVICE)
+        complete_onboarding(full_user, **self.REQUIRED)
 
         full_user.refresh_from_db()
         assert full_user.updated_at > before
 
     @pytest.mark.parametrize(
-        "gender, tier, error_fields",
+        "overrides, error_fields",
         [
-            ("", SkillTier.NOVICE, {"gender"}),
-            (Gender.WOMAN, None, {"skill_tier"}),
-            ("", None, {"gender", "skill_tier"}),
+            ({"gender": ""}, {"gender"}),
+            ({"skill_tier": None}, {"skill_tier"}),
+            ({"main_positions": []}, {"main_positions"}),
+            (
+                {"gender": "", "skill_tier": None, "main_positions": []},
+                {"gender", "skill_tier", "main_positions"},
+            ),
         ],
     )
-    def test_requires_gender_and_tier(self, full_user, gender, tier, error_fields):
+    def test_requires_gender_tier_and_main_position(
+        self, full_user, overrides, error_fields
+    ):
         with pytest.raises(ValidationError) as exc_info:
-            complete_onboarding(full_user, gender=gender, skill_tier=tier)
+            complete_onboarding(full_user, **{**self.REQUIRED, **overrides})
 
         assert set(exc_info.value.message_dict) == error_fields
 
@@ -472,8 +586,7 @@ class TestCompleteOnboarding:
         with pytest.raises(ValidationError) as exc_info:
             complete_onboarding(
                 full_user,
-                gender=Gender.WOMAN,
-                skill_tier=SkillTier.BEGINNER,
+                **{**self.REQUIRED, "skill_tier": SkillTier.BEGINNER},
                 tier_flex_down=1,
             )
 
@@ -481,12 +594,22 @@ class TestCompleteOnboarding:
         # In-memory instance is reset as well as the database row.
         assert full_user.skill_tier is None
         assert full_user.gender == ""
+        assert full_user.main_positions == []
         full_user.refresh_from_db()
         assert not full_user.is_onboarded
 
+    def test_position_in_both_lists_is_rejected(self, full_user):
+        with pytest.raises(ValidationError) as exc_info:
+            complete_onboarding(
+                full_user, **self.REQUIRED, sub_positions=[Position.SETTER]
+            )
+
+        assert set(exc_info.value.message_dict) == {"sub_positions"}
+        assert full_user.main_positions == []
+
     def test_rejects_invalid_choice(self, full_user):
         with pytest.raises(ValidationError) as exc_info:
-            complete_onboarding(full_user, gender="robot", skill_tier=SkillTier.NOVICE)
+            complete_onboarding(full_user, **{**self.REQUIRED, "gender": "robot"})
 
         assert "gender" in exc_info.value.message_dict
 
@@ -494,7 +617,7 @@ class TestCompleteOnboarding:
         guest = User.objects.create_guest("Sam", phone="555-0100")
 
         with pytest.raises(ValidationError):
-            complete_onboarding(guest, gender=Gender.WOMAN, skill_tier=SkillTier.NOVICE)
+            complete_onboarding(guest, **self.REQUIRED)
 
         guest.refresh_from_db()
         assert guest.skill_tier is None

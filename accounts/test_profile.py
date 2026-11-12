@@ -3,7 +3,7 @@ from django.contrib.messages import get_messages
 from django.urls import reverse
 
 from accounts.models import User
-from core.choices import Gender, SkillTier
+from core.choices import Gender, Position, SkillTier
 
 pytestmark = pytest.mark.django_db
 
@@ -31,6 +31,7 @@ def onboarded_user():
         display_name="Casey",
         gender=Gender.WOMAN,
         skill_tier=SkillTier.INTERMEDIATE,
+        main_positions=[Position.SETTER, Position.LIBERO],
         tier_flex_down=1,
         tier_flex_up=1,
         travel_radius_km=25,
@@ -42,6 +43,8 @@ def profile_data(**overrides):
         "display_name": "Jordan K",
         "gender": Gender.MAN,
         "skill_tier": str(SkillTier.INTERMEDIATE),
+        "main_positions": [Position.SETTER],
+        "sub_positions": [],
         "tier_flex_down": "1",
         "tier_flex_up": "1",
         "travel_radius_km": "20",
@@ -305,3 +308,102 @@ class TestProfileEdit:
 
         assert response.status_code == 302
         assert response["Location"] == PROFILE_URL
+
+
+class TestPositions:
+    def test_onboarding_shows_both_position_groups(self, client, new_user):
+        client.force_login(new_user)
+
+        html = client.get(ONBOARDING_URL).content.decode()
+
+        assert "<h2" in html and "Positions</h2>" in html
+        assert html.count('name="main_positions"') == len(Position.choices)
+        assert html.count('name="sub_positions"') == len(Position.choices)
+        assert "All-around" in html
+        assert "main.includes($el.value)" in html  # sub disabled when main
+        # Main capped at two (">" is HTML-escaped inside the attribute).
+        assert "main.length &gt;= 2" in html
+
+    def test_onboarding_saves_positions_in_order(self, client, new_user):
+        client.force_login(new_user)
+
+        client.post(
+            ONBOARDING_URL,
+            profile_data(
+                main_positions=[Position.LIBERO, Position.SETTER],
+                sub_positions=[Position.ALL_AROUND, Position.OPPOSITE],
+            ),
+            headers=HTMX,
+        )
+
+        new_user.refresh_from_db()
+        assert new_user.main_positions == [Position.SETTER, Position.LIBERO]
+        assert new_user.sub_positions == [Position.OPPOSITE, Position.ALL_AROUND]
+        assert new_user.is_onboarded
+
+    @pytest.mark.parametrize(
+        "overrides, expected",
+        [
+            ({"main_positions": []}, "This field is required."),
+            (
+                {
+                    "main_positions": [
+                        Position.SETTER,
+                        Position.LIBERO,
+                        Position.OPPOSITE,
+                    ]
+                },
+                "Pick at most 2 main positions.",
+            ),
+            (
+                {"main_positions": [Position.SETTER], "sub_positions": ["setter"]},
+                "Already one of your main positions: Setter.",
+            ),
+            ({"sub_positions": ["goalkeeper"]}, "Select a valid choice."),
+        ],
+    )
+    def test_invalid_positions_rerender_with_error(
+        self, client, new_user, overrides, expected
+    ):
+        client.force_login(new_user)
+
+        response = client.post(ONBOARDING_URL, profile_data(**overrides), headers=HTMX)
+
+        html = assert_fragment(response)
+        assert expected in html
+        new_user.refresh_from_db()
+        assert not new_user.is_onboarded
+
+    def test_profile_card_lists_positions(self, client, onboarded_user):
+        client.force_login(onboarded_user)
+
+        html = client.get(PROFILE_URL).content.decode()
+
+        assert "Setter, Libero" in html
+        assert "Main positions only" in html
+
+    def test_profile_edit_saves_sub_positions(self, client, onboarded_user):
+        client.force_login(onboarded_user)
+
+        response = client.post(
+            PROFILE_EDIT_URL,
+            profile_data(
+                gender=Gender.WOMAN,
+                main_positions=[Position.SETTER],
+                sub_positions=[Position.MIDDLE_BLOCKER],
+            ),
+            headers=HTMX,
+        )
+
+        html = assert_fragment(response)
+        assert "Middle blocker" in html
+        onboarded_user.refresh_from_db()
+        assert onboarded_user.sub_positions == [Position.MIDDLE_BLOCKER]
+
+    def test_existing_profile_without_positions_returns_to_onboarding(
+        self, client, onboarded_user
+    ):
+        User.objects.filter(pk=onboarded_user.pk).update(main_positions=[])
+        client.force_login(onboarded_user)
+
+        assert client.get(PROFILE_URL)["Location"] == ONBOARDING_URL

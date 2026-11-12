@@ -22,6 +22,14 @@
       <dd class="font-medium">{{ profile_user.get_skill_tier_display }}</dd>
     </div>
     <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Main positions</dt>
+      <dd class="font-medium">{{ profile_user.main_positions|position_labels }}</dd>
+    </div>
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Also subs at</dt>
+      <dd class="font-medium">{% if profile_user.sub_positions %}{{ profile_user.sub_positions|position_labels }}{% else %}<span class="font-normal text-slate">Main positions only</span>{% endif %}</dd>
+    </div>
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
       <dt class="text-slate">Range you'll sub</dt>
       <dd class="font-medium">{{ profile_user|sub_range }}</dd>
     </div>

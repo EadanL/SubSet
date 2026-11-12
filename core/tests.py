@@ -5,7 +5,7 @@ from django.core.mail import EmailMessage
 from django.urls import reverse
 
 from accounts.models import User
-from core.choices import Gender, SkillTier
+from core.choices import Gender, Position, SkillTier
 from core.mail import ReadableConsoleEmailBackend
 
 pytestmark = pytest.mark.django_db
@@ -84,6 +84,7 @@ class TestHome:
             display_name="Jordan",
             gender=Gender.WOMAN,
             skill_tier=SkillTier.NOVICE,
+            main_positions=[Position.ALL_AROUND],
         )
         client.force_login(user)
 

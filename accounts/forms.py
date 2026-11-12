@@ -10,10 +10,10 @@ from django.contrib.auth.forms import (
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 
-from core.choices import Gender, SkillTier
+from core.choices import Gender, Position, SkillTier
 from core.forms import TailwindFormMixin
 
-from .models import MAX_TIER, MIN_TIER, User
+from .models import MAX_MAIN_POSITIONS, MAX_TIER, MIN_TIER, User
 from .services import complete_onboarding, register_full_account
 
 PASSWORD_HELP = (
@@ -126,13 +126,15 @@ class NewPasswordForm(TailwindFormMixin, SetPasswordForm):
 
 PHONE_ALLOWED = re.compile(r"^[0-9 +()\-]+$")
 RADIO_ATTRS = {"class": "size-4 shrink-0 accent-court"}
+CHECKBOX_ATTRS = RADIO_ATTRS
 
 
 class ProfileForm(TailwindFormMixin, forms.ModelForm):
     """Onboarding and profile edit. Saves through complete_onboarding().
 
-    All three tier fields must stay in this form: User.clean() reports the tier
-    range rule on them (see CLAUDE.md, Validation).
+    All three tier fields, and both position fields, must stay in this form:
+    User.clean() reports the tier range and position rules on them (see
+    CLAUDE.md, Validation).
     """
 
     display_name = forms.CharField(label="Display name", min_length=2, max_length=100)
@@ -149,6 +151,34 @@ class ProfileForm(TailwindFormMixin, forms.ModelForm):
         coerce=int,
         widget=forms.RadioSelect(attrs={**RADIO_ATTRS, "x-model.number": "tier"}),
         help_text="Pick the level you usually play at.",
+    )
+    main_positions = forms.MultipleChoiceField(
+        label="Your main positions",
+        choices=Position.choices,
+        widget=forms.CheckboxSelectMultiple(
+            attrs={
+                **CHECKBOX_ATTRS,
+                "x-model": "main",
+                # Stop at the limit; User.clean() still enforces it.
+                "x-bind:disabled": (
+                    f"main.length >= {MAX_MAIN_POSITIONS} && !main.includes($el.value)"
+                ),
+            }
+        ),
+        help_text=f"Pick up to {MAX_MAIN_POSITIONS}.",
+    )
+    sub_positions = forms.MultipleChoiceField(
+        label="Also willing to sub at",
+        required=False,
+        choices=Position.choices,
+        widget=forms.CheckboxSelectMultiple(
+            attrs={
+                **CHECKBOX_ATTRS,
+                "x-model": "sub",
+                "x-bind:disabled": "main.includes($el.value)",
+            }
+        ),
+        help_text="Optional. Other positions you'd cover as a sub.",
     )
     tier_flex_down = forms.IntegerField(
         label="Levels below yours", required=False, min_value=0
@@ -175,6 +205,8 @@ class ProfileForm(TailwindFormMixin, forms.ModelForm):
             "display_name",
             "gender",
             "skill_tier",
+            "main_positions",
+            "sub_positions",
             "tier_flex_down",
             "tier_flex_up",
             "travel_radius_km",

@@ -44,6 +44,8 @@ erDiagram
         smallint tier_flex_up "0 when no tier, else tier plus up at most 5"
         point home_location "deferred, PostGIS later"
         smallint travel_radius_km "nullable"
+        string_array main_positions "Position values, at most 2, needed to onboard"
+        string_array sub_positions "other positions willing to sub, none in main"
         float reliability_score "deferred, owned by feedback app"
         string password "Django auth, unusable for guests"
         timestamptz last_login

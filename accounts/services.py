@@ -1,6 +1,8 @@
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError
 
+from core.choices import Position
+
 from .models import AccountType, User
 
 
@@ -31,6 +33,8 @@ def complete_onboarding(
     *,
     gender,
     skill_tier,
+    main_positions,
+    sub_positions=(),
     tier_flex_down=0,
     tier_flex_up=0,
     travel_radius_km=None,
@@ -39,9 +43,10 @@ def complete_onboarding(
 ):
     """Save a full account's profile, making it onboarded.
 
-    Gender and skill tier are required here even though the model allows
-    them blank. On ``ValidationError`` the in-memory ``user`` is reset to its
-    saved state so callers (e.g. ``request.user``) never hold invalid values.
+    Gender, skill tier and at least one main position are required here even
+    though the model allows them blank. Positions are de-duplicated and stored
+    in Position order. On ``ValidationError`` the in-memory ``user`` is reset to
+    its saved state so callers (e.g. ``request.user``) never hold invalid values.
     """
     if user.account_type != AccountType.FULL:
         raise ValidationError("Guest accounts can't complete onboarding.")
@@ -51,12 +56,16 @@ def complete_onboarding(
         missing["gender"] = "Choose a gender option."
     if skill_tier is None:
         missing["skill_tier"] = "Choose your skill tier."
+    if not main_positions:
+        missing["main_positions"] = "Choose at least one main position."
     if missing:
         raise ValidationError(missing)
 
     changes = {
         "gender": gender,
         "skill_tier": skill_tier,
+        "main_positions": _ordered_positions(main_positions),
+        "sub_positions": _ordered_positions(sub_positions),
         "tier_flex_down": tier_flex_down,
         "tier_flex_up": tier_flex_up,
         "travel_radius_km": travel_radius_km,
@@ -74,3 +83,10 @@ def complete_onboarding(
         raise
     user.save(update_fields=[*changes, "updated_at"])
     return user
+
+
+def _ordered_positions(positions):
+    """De-duplicate and sort into Position order; unknown values go last so
+    full_clean() still reports them."""
+    order = {value: index for index, value in enumerate(Position.values)}
+    return sorted(dict.fromkeys(positions), key=lambda p: order.get(p, len(order)))

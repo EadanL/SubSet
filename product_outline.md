@@ -68,10 +68,14 @@ Every entity uses a UUID primary key. The full schema lives in `db_erd.mermaid`.
 - **Playing profile:** leagues played in, teams, positions, self-reported skill tier, gender.
 - **Skill tier scale** (shared by players and leagues): 1 Beginner · 2 Novice (C) · 3 Intermediate (B) · 4 Advanced (BB) · 5 Elite (A/AA).
 - **Gender options:** Woman, Man, Non-binary, Prefer not to say.
-- **Onboarding:** a new full account is onboarded once it has a skill tier and a gender ("Prefer not to say" counts). Display name, phone, tier range and travel radius are optional.
+- **Positions:** Setter, Outside hitter, Opposite, Middle blocker, Libero, and All-around (for formats like 4s or beach doubles where fixed positions don't apply).
+  - **Main positions:** the one or two positions a player usually plays.
+  - **Also willing to sub at:** optional other positions they'll cover as a sub. A position can't be in both lists.
+  - These are the player's defaults: a new sub slot can start from the absent player's main position, and matching uses both lists.
+- **Onboarding:** a new full account is onboarded once it has a skill tier, a gender ("Prefer not to say" counts) and at least one main position. Display name, other sub positions, phone, tier range and travel radius are optional.
 - **Subbing profile:**
   - Days of the week open to subbing
-  - Positions willing to sub
+  - Positions willing to sub, beyond their main positions
   - Leagues they can or want to sub for
   - Skill tier flexibility (a range, e.g. willing to sub one tier down or a stretch up), stored as a number of tiers down and up from the player's own tier. The range must stay on the 1–5 scale (a Beginner can't go down, an Elite can't go up), and a range needs a skill tier set first.
   - Travel radius
@@ -302,7 +306,11 @@ Skill is self-reported, so ratings gradually calibrate it. Matching players are 
   - `complete_onboarding` requires gender and skill tier, and rejects guests.
 - **Email handling:** emails are trimmed and lowercased before validation, and a full account with no email gets a clear field error.
 
-### Phase 2B: Onboarding UI (approved, not started)
+### Profile positions (complete)
+- `main_positions` (at most 2) and `sub_positions` on User, stored as Postgres arrays. Database constraints back the rules: valid positions only, at most 2 main positions, and no position in both lists.
+- Onboarding and the profile page have a Positions section with checkbox options. A main position greys out in the sub list, and a third main position can't be picked.
+
+### Phase 2B: Onboarding UI (in progress)
 - **Full spec:** [`phase_2b_spec.md`](phase_2b_spec.md).
 - **Pages:** sign up, log in, log out, password reset, one-step profile onboarding, and profile view with inline edit.
 - **Tooling:** `django-htmx`, Tailwind through `django-tailwind-cli` (no Node), and pinned htmx and Alpine.js copied into `static/vendor/`.
