@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}{{ league.name }} | SubSet{% endblock %}
+
+{% block content %}
+<section class="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-14 md:py-20">
+  <a href="{% url 'leagues:list' %}"
+     class="inline-flex min-h-11 items-center self-start font-medium text-court underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+    All leagues
+  </a>
+
+  <div class="flex flex-col gap-4">
+    <p class="text-h2 font-semibold font-stretch-condensed tabular-nums text-court">
+      {{ league.get_weekday_display }}s at {{ league.start_time|time:"g:i" }} {{ league.start_time|time:"A"|lower }}
+    </p>
+    <h1 class="font-serif text-h1 font-semibold md:text-display">{{ league.name }}</h1>
+    {% include "leagues/partials/_league_chips.html" %}
+  </div>
+
+  {% comment %} Who can sub here, from can_sub_in(). {% endcomment %}
+  <div class="flex flex-col gap-1 border-l-4 border-court bg-surface px-4 py-3">
+    {% if not league.subs_must_be_registered %}
+      <p class="font-semibold">Open to all subs</p>
+      <p class="font-light text-slate">Anyone at the right level can pick up a spot here.</p>
+    {% elif not user.is_authenticated %}
+      <p class="font-semibold">Registered subs only</p>
+      <p class="font-light text-slate">Only players registered with {{ league.organizer.name }} can sub here. Log in to check your registrations.</p>
+    {% elif can_sub %}
+      <p class="font-semibold">Registered subs only</p>
+      <p class="font-light text-slate">You're registered with {{ league.organizer.name }}, so you can sub here.</p>
+    {% else %}
+      <p class="font-semibold">Registered subs only</p>
+      <p class="font-light text-slate">
+        Only players registered with {{ league.organizer.name }} can sub here. If you're registered with them, add them on
+        <a href="{% url 'accounts:profile' %}#organizer-registrations"
+           class="font-medium text-court underline underline-offset-4 hover:text-court-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">your profile</a>.
+      </p>
+    {% endif %}
+  </div>
+
+  <dl class="flex flex-col divide-y divide-hairline border-y border-hairline">
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Organizer</dt>
+      <dd class="font-medium">{% if league.organizer %}{{ league.organizer.name }}{% else %}<span class="font-normal text-slate">Independent league</span>{% endif %}</dd>
+    </div>
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Venue</dt>
+      <dd class="flex flex-col font-medium">
+        <span>{{ league.venue_name }}</span>
+        {% if league.address %}<span class="font-light text-slate">{{ league.address }}</span>{% endif %}
+        <span class="font-light text-slate">{{ league.city }}</span>
+      </dd>
+    </div>
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Games</dt>
+      <dd class="font-medium">
+        <span class="font-stretch-condensed tabular-nums">{{ league.game_duration_min }}</span> minutes,
+        <span class="font-stretch-condensed tabular-nums">{{ league.matches_per_night }}</span> match{{ league.matches_per_night|pluralize:"es" }} a night
+      </dd>
+    </div>
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Format</dt>
+      <dd class="font-medium">{{ league.get_team_size_display }} {{ league.get_division_display }}, {{ league.get_surface_display|lower }}</dd>
+    </div>
+    {% if league.needs_women_minimum %}
+      <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+        <dt class="text-slate">Minimum women on court</dt>
+        <dd class="font-medium font-stretch-condensed tabular-nums">{{ league.min_women_on_court }}</dd>
+      </div>
+    {% endif %}
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Level</dt>
+      <dd class="font-medium">{{ league.get_tier_display }}</dd>
+    </div>
+    <div class="grid gap-1 py-4 sm:grid-cols-[12rem_1fr] sm:gap-6">
+      <dt class="text-slate">Time zone</dt>
+      <dd class="font-medium">{{ league.timezone }}</dd>
+    </div>
+  </dl>
+
+  {% if league.verification_status == "unverified" %}
+    <p class="text-meta text-slate">Unverified: this league was added by a player and hasn't been confirmed yet.</p>
+  {% endif %}
+
+  {% if can_edit %}
+    <div class="flex flex-col gap-2">
+      <a href="{% url 'leagues:edit' league.pk %}"
+         class="inline-flex min-h-11 items-center justify-center self-start rounded-full bg-court px-6 font-semibold text-surface hover:bg-court-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+        Edit league
+      </a>
+      <p class="text-meta text-slate">You added this league, so you can edit it until it's verified.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

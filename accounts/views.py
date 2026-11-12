@@ -122,7 +122,12 @@ class ProfileView(OnboardedRequiredMixin, TemplateView):
     template_name = "accounts/profile.html"
 
     def get_context_data(self, **kwargs):
-        return super().get_context_data(profile_user=self.request.user, **kwargs)
+        registrations = self.request.user.organizer_registrations.select_related(
+            "organizer"
+        ).order_by("organizer__name")
+        return super().get_context_data(
+            profile_user=self.request.user, registrations=registrations, **kwargs
+        )
 
 
 class ProfileCardView(OnboardedRequiredMixin, TemplateView):

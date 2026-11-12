@@ -1,0 +1,18 @@
+{% comment %}
+  League detail chips. Indoor is the default surface, so only other surfaces
+  get a chip.
+{% endcomment %}
+<ul aria-label="League details" class="flex flex-wrap gap-2">
+  <li class="rounded-full border border-hairline bg-surface px-2.5 py-0.5 text-meta font-medium">{{ league.get_team_size_display }}</li>
+  <li class="rounded-full border border-hairline bg-surface px-2.5 py-0.5 text-meta font-medium">{{ league.get_division_display }}</li>
+  <li class="rounded-full border border-hairline bg-surface px-2.5 py-0.5 text-meta font-medium">{{ league.get_tier_display }}</li>
+  {% if league.surface != "indoor" %}
+    <li class="rounded-full border border-hairline bg-surface px-2.5 py-0.5 text-meta font-medium">{{ league.get_surface_display }}</li>
+  {% endif %}
+  {% if league.subs_must_be_registered %}
+    <li class="rounded-full border border-court bg-surface px-2.5 py-0.5 text-meta font-medium text-court">Registered subs only</li>
+  {% endif %}
+  {% if league.verification_status == "unverified" %}
+    <li class="rounded-full border border-dashed border-field px-2.5 py-0.5 text-meta font-medium text-slate">Unverified</li>
+  {% endif %}
+</ul>

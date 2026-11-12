@@ -141,3 +141,47 @@ def can_sub_in(user, league):
     return OrganizerRegistration.objects.filter(
         user=user, organizer_id=league.organizer_id
     ).exists()
+
+
+def find_or_create_organizer(*, created_by, name):
+    """Return the organizer with this name (ignoring case), creating it if it
+    doesn't exist yet. Raises ``ValidationError`` for a blank name."""
+    cleaned = " ".join((name or "").split())
+    existing = Organizer.objects.filter(name__iexact=cleaned).first()
+    if existing:
+        return existing
+    return create_organizer(created_by=created_by, name=cleaned)
+
+
+def search_organizers(query, *, exclude_registered_by=None, limit=8):
+    """Organizers whose name contains ``query``, alphabetically. Optionally
+    leaves out organizers a user is already registered with."""
+    query = " ".join((query or "").split())
+    if not query:
+        return Organizer.objects.none()
+    organizers = Organizer.objects.filter(name__icontains=query)
+    if exclude_registered_by is not None:
+        organizers = organizers.exclude(registrations__user=exclude_registered_by)
+    return organizers[:limit]
+
+
+def search_leagues(
+    *, weekday=None, city=None, team_size=None, division=None, tier=None
+):
+    """Visible leagues matching every filter given (``None`` means any)."""
+    leagues = League.objects.visible().select_related("organizer")
+    filters = {
+        "weekday": weekday,
+        "city__iexact": city,
+        "team_size": team_size,
+        "division": division,
+        "tier": tier,
+    }
+    return leagues.filter(**{k: v for k, v in filters.items() if v not in (None, "")})
+
+
+def league_cities():
+    """Cities with at least one visible league, for the finder's city filter."""
+    return sorted(
+        set(League.objects.visible().values_list("city", flat=True)), key=str.lower
+    )

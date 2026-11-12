@@ -1,0 +1,23 @@
+{% comment %}
+  The finder's results. Swapped as a whole (id="league-results") when a filter
+  changes.
+{% endcomment %}
+{% with count=leagues|length %}
+<div id="league-results" class="flex flex-col gap-4">
+  <p aria-live="polite" class="text-slate">
+    <span class="font-semibold font-stretch-condensed tabular-nums text-ink">{{ count }}</span> league{{ count|pluralize }}
+  </p>
+  {% if count %}
+    <ul class="flex flex-col divide-y divide-hairline border-y border-hairline">
+      {% for league in leagues %}
+        {% include "leagues/partials/_league_row.html" %}
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="flex flex-col items-center gap-2 border-y border-hairline px-5 py-16 text-center">
+      <p class="font-serif text-h2 font-semibold">No leagues match these filters</p>
+      <p class="max-w-md font-light text-slate">Try another night or level, or add the league if it's missing.</p>
+    </div>
+  {% endif %}
+</div>
+{% endwith %}

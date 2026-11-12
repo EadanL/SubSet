@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}{% if league %}Edit {{ league.name }}{% else %}Add a league{% endif %} | SubSet{% endblock %}
+
+{% block content %}
+<section class="mx-auto flex w-full max-w-2xl flex-col gap-8 px-5 py-14 md:py-20">
+  <div class="flex flex-col gap-3">
+    <h1 class="font-serif text-h1 font-semibold">{% if league %}Edit league{% else %}Add a league{% endif %}</h1>
+    {% if not league %}
+      <p class="font-light text-slate">Add a league night so players can find it and sub in. It shows as unverified until it's confirmed to be real.</p>
+    {% endif %}
+  </div>
+  {% include "leagues/partials/_league_form.html" %}
+</section>
+{% endblock %}

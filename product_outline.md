@@ -321,6 +321,13 @@ Skill is self-reported, so ratings gradually calibrate it. Matching players are 
 - Django Admin with bulk "Mark verified" and "Remove" actions.
 - Deferred: SUBBING_LEAGUE (subbing-profile phase), captain flagging (teams phase), fuzzy duplicate suggestions and a moderation screen (next layer).
 
+### Leagues Phase 2: UI (complete)
+- **League finder** (`/leagues/`): filters for night, city, team size, division and level that update the results in place and the address bar. Rows show night and time, name, venue and city, and chips (team size, division, level, non-indoor surface, "Registered subs only", "Unverified").
+- **League page:** details plus a note on whether the signed-in player can sub there, and "Edit league" for the submitter until it's verified.
+- **Add / edit a league:** organizer search that picks an existing organizer or adds a new one (an existing name is reused); the women-minimum field appears only for co-ed and reverse co-ed. New leagues default to Calgary and America/Edmonton.
+- **Profile:** "Organizer registrations" section to add (search) or remove the organizers a player is registered with.
+- "Leagues" link in the nav for everyone.
+
 ### Phase 2B: Onboarding UI (complete)
 - **Full spec:** [`phase_2b_spec.md`](phase_2b_spec.md).
 - **Pages:** sign up, log in, log out, password reset, one-step profile onboarding, and profile view with inline edit.

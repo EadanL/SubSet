@@ -1,0 +1,20 @@
+{% comment %}
+  One league in a list: night and start time in condensed numerals, name in
+  serif, venue and city, then the detail chips.
+{% endcomment %}
+<li>
+  <a href="{% url 'leagues:detail' league.pk %}"
+     class="grid gap-x-6 gap-y-3 px-3 py-5 hover:bg-surface focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-court sm:grid-cols-[8rem_1fr]">
+    <div class="flex items-baseline gap-2 font-stretch-condensed tabular-nums sm:flex-col sm:gap-0">
+      <span class="text-h2 font-semibold">{{ league.get_weekday_display }}</span>
+      <span class="text-slate">{{ league.start_time|time:"g:i" }} {{ league.start_time|time:"A"|lower }}</span>
+    </div>
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-1">
+        <h3 class="font-serif text-h2 font-semibold">{{ league.name }}</h3>
+        <p class="font-light text-slate">{{ league.venue_name }}, {{ league.city }}</p>
+      </div>
+      {% include "leagues/partials/_league_chips.html" %}
+    </div>
+  </a>
+</li>

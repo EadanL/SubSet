@@ -23,5 +23,6 @@ from core.views import home
 urlpatterns = [
     path("", home, name="home"),
     path("accounts/", include("accounts.urls")),
+    path("leagues/", include("leagues.urls")),
     path("admin/", admin.site.urls),
 ]

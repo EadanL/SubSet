@@ -1,0 +1,17 @@
+{% comment %}
+  A single checkbox with its label beside it. Expects `field` (a BoundField
+  with a CheckboxInput widget). Django points aria-describedby at the ids here.
+{% endcomment %}
+<div class="flex flex-col gap-2">
+  <label for="{{ field.id_for_label }}" class="flex min-h-11 cursor-pointer items-center gap-3">
+    {{ field }}<span class="font-medium text-ink">{{ field.label }}</span>
+  </label>
+  {% if field.help_text %}
+    <p id="{{ field.auto_id }}_helptext" class="text-meta text-slate">{{ field.help_text }}</p>
+  {% endif %}
+  {% if field.errors %}
+    <ul id="{{ field.auto_id }}_error" class="flex flex-col gap-1 text-meta font-medium text-danger">
+      {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+</div>

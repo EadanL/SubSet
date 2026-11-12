@@ -1,0 +1,44 @@
+{% comment %}
+  Search results. When registering, each result adds a registration; on the
+  league form, each result picks the organizer, with an option to add the
+  typed name as a new one.
+{% endcomment %}
+{% if query %}
+<ul class="flex flex-col divide-y divide-hairline border border-hairline bg-surface">
+  {% for organizer in organizers %}
+    <li>
+      {% if registering %}
+        <button type="button"
+                hx-post="{% url 'leagues:registration_add' %}" hx-vals='{"organizer": "{{ organizer.pk }}"}'
+                hx-target="#organizer-registrations" hx-swap="outerHTML"
+                class="flex min-h-11 w-full cursor-pointer items-center px-4 py-2 text-left hover:bg-paper focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-court">
+          {{ organizer.name }}
+        </button>
+      {% else %}
+        <button type="button"
+                hx-get="{% url 'leagues:organizer_pick' %}?organizer={{ organizer.pk }}"
+                hx-target="#organizer-picker" hx-swap="outerHTML"
+                class="flex min-h-11 w-full cursor-pointer items-center px-4 py-2 text-left hover:bg-paper focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-court">
+          {{ organizer.name }}
+        </button>
+      {% endif %}
+    </li>
+  {% endfor %}
+  {% if can_add %}
+    <li>
+      <button type="button"
+              hx-post="{% url 'leagues:organizer_create' %}"
+              hx-vals='{"organizer_name": "{{ query|escapejs }}"}' hx-params="organizer_name"
+              hx-target="#organizer-picker" hx-swap="outerHTML"
+              class="flex min-h-11 w-full cursor-pointer items-center px-4 py-2 text-left font-medium text-court hover:bg-paper focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-court">
+        Add “{{ query }}” as a new organizer
+      </button>
+    </li>
+  {% endif %}
+  {% if not organizers and not can_add %}
+    <li class="px-4 py-3 text-slate">
+      {% if registering %}No organizers match. An organizer appears here once someone adds one of their leagues.{% else %}No matches.{% endif %}
+    </li>
+  {% endif %}
+</ul>
+{% endif %}
