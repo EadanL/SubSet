@@ -68,11 +68,12 @@ Every entity uses a UUID primary key. The full schema lives in `db_erd.mermaid`.
 - **Playing profile:** leagues played in, teams, positions, self-reported skill tier, gender.
 - **Skill tier scale** (shared by players and leagues): 1 Beginner · 2 Novice (C) · 3 Intermediate (B) · 4 Advanced (BB) · 5 Elite (A/AA).
 - **Gender options:** Woman, Man, Non-binary, Prefer not to say.
+- **Onboarding:** a new full account is onboarded once it has a skill tier and a gender ("Prefer not to say" counts). Display name, phone, tier range and travel radius are optional.
 - **Subbing profile:**
   - Days of the week open to subbing
   - Positions willing to sub
   - Leagues they can or want to sub for
-  - Skill tier flexibility (a range, e.g. willing to sub one tier down or a stretch up), stored as a number of tiers down and up from the player's own tier
+  - Skill tier flexibility (a range, e.g. willing to sub one tier down or a stretch up), stored as a number of tiers down and up from the player's own tier. The range must stay on the 1–5 scale (a Beginner can't go down, an Elite can't go up), and a range needs a skill tier set first.
   - Travel radius
   - **Organizer registrations** (which organizers they are registered with)
 - Notification preferences, including quiet hours and opt-in to urgent alerts.
@@ -198,6 +199,7 @@ Skill is self-reported, so ratings gradually calibrate it. Matching players are 
   - Is clearly labeled **"guest, no history"** to the captain
   - Is **blocked from leagues requiring registration**, with an explanation
 - After the game, guests are prompted to **convert to a full account**, with their rating attached so they see the benefit.
+- Conversion happens only through a **dedicated magic-link workflow** (future sprint). Until then, signing up normally with an email a guest already used shows the standard "an account with this email already exists" error.
 
 ---
 
@@ -292,8 +294,18 @@ Skill is self-reported, so ratings gradually calibrate it. Matching players are 
 - **Deferred User fields:** `home_location` (waits for PostGIS) and `reliability_score` (computed by the feedback app).
 - **Local development:** PostgreSQL runs in Docker on host port **5433**, to avoid clashing with a locally installed Postgres on 5432.
 
-### Phase 2: Onboarding UI (planned)
-- Sign-up, log-in and log-out, profile onboarding, and profile view/edit.
+### Phase 2A: Onboarding backend (complete)
+- **Tier range rule:** the model gives field-specific errors (e.g. "From Novice (C) you can go at most 1 tier(s) down"), and a database check constraint backs it up.
+- **`is_onboarded`:** true for a full account with skill tier and gender set. It's computed, so there's no extra column.
+- **`accounts/services.py`:**
+  - `register_full_account` validates email, display name and password strength.
+  - `complete_onboarding` requires gender and skill tier, and rejects guests.
+- **Email handling:** emails are trimmed and lowercased before validation, and a full account with no email gets a clear field error.
+
+### Phase 2B: Onboarding UI (planned)
+- **Pages:** sign up, log in, log out, password reset, one-step profile onboarding, and profile view with inline edit.
+- **Tooling:** `django-htmx`, Tailwind through `django-tailwind-cli` (no Node), and pinned htmx and Alpine.js copied into `static/vendor/`.
+- **Forms:** submit with HTMX and re-render errors in place. They also work without JavaScript.
 
 ---
 

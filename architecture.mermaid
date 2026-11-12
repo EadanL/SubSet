@@ -1,6 +1,6 @@
 flowchart TB
     subgraph Client["Client (phone / desktop browser, installable PWA)"]
-        UI["HTMX + Alpine.js + Tailwind pages"]
+        UI["HTMX + Alpine.js (vendored in static/vendor)<br/>+ Tailwind (django-tailwind-cli) pages"]
         SW["Service worker: web push, offline shell"]
     end
 
@@ -11,7 +11,7 @@ flowchart TB
     subgraph Django["Django project (modular monolith)"]
         direction TB
         subgraph Apps["Django apps"]
-            ACC["accounts<br/>custom User (email login), guests, magic links, prefs"]
+            ACC["accounts<br/>custom User (email login), registration + onboarding services,<br/>guests, magic links, prefs"]
             LGE["leagues<br/>organizers, leagues, registrations, moderation"]
             TMS["teams<br/>teams, rosters, roles, on-call lists"]
             SCH["scheduling<br/>games, schedule import, manual games"]
@@ -37,7 +37,7 @@ flowchart TB
 
     subgraph DB["PostgreSQL (local dev: Docker on host port 5433)"]
         TBL["Core tables"]
-        CON["Constraints: exclusion on commitments,<br/>partial unique on open slots,<br/>case-insensitive unique email"]
+        CON["Constraints: exclusion on commitments,<br/>partial unique on open slots,<br/>case-insensitive unique email, tier range check"]
         QUEUE["Job queue tables"]
     end
 

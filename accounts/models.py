@@ -1,11 +1,15 @@
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
+from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
 from django.db.models.functions import Lower
 
 from core.choices import Gender, SkillTier
 from core.models import TimeStampedModel, UUIDModel
+
+MIN_TIER = min(SkillTier.values)
+MAX_TIER = max(SkillTier.values)
 
 
 def normalize_email_address(email):
@@ -119,14 +123,65 @@ class User(UUIDModel, TimeStampedModel, AbstractBaseUser, PermissionsMixin):
                 | ~Q(phone=""),
                 name="accounts_user_guest_requires_contact",
             ),
+            # Database backstop for the tier flex rule in clean(): no tier means
+            # no flex, otherwise the flex range must stay on the SkillTier scale.
+            models.CheckConstraint(
+                condition=Q(skill_tier__isnull=True, tier_flex_down=0, tier_flex_up=0)
+                | Q(
+                    # Explicit: NULL comparisons are unknown, which CHECK passes.
+                    skill_tier__isnull=False,
+                    skill_tier__gte=F("tier_flex_down") + MIN_TIER,
+                    skill_tier__lte=MAX_TIER - F("tier_flex_up"),
+                ),
+                name="accounts_user_tier_flex_within_scale",
+                violation_error_message=(
+                    "Tier range must stay between Beginner and Elite."
+                ),
+            ),
         ]
 
     def __str__(self):
         return self.display_name or self.email or str(self.id)
 
+    def clean_fields(self, exclude=None):
+        # Normalize before field validators run, so " A@B.com " validates.
+        self.email = normalize_email_address(self.email)
+        super().clean_fields(exclude=exclude)
+
     def clean(self):
         super().clean()
-        self.email = normalize_email_address(self.email)
+        # Field-keyed errors make full_clean() skip the matching constraints,
+        # so users see these messages rather than generic constraint ones.
+        errors = {}
+        if self.account_type == AccountType.FULL and self.email is None:
+            errors["email"] = "Full accounts require an email address."
+        errors.update(self._tier_flex_errors())
+        if errors:
+            raise ValidationError(errors)
+
+    def _tier_flex_errors(self):
+        down, up = self.tier_flex_down, self.tier_flex_up
+        if down is None or up is None:
+            return {}  # Already reported by clean_fields().
+
+        if self.skill_tier is None:
+            if down or up:
+                return {"skill_tier": "Choose your skill tier before setting a range."}
+            return {}
+        if self.skill_tier not in SkillTier.values:
+            return {}  # Already reported by clean_fields().
+
+        tier = SkillTier(self.skill_tier)
+        errors = {}
+        if tier - down < MIN_TIER:
+            errors["tier_flex_down"] = (
+                f"From {tier.label} you can go at most {tier - MIN_TIER} tier(s) down."
+            )
+        if tier + up > MAX_TIER:
+            errors["tier_flex_up"] = (
+                f"From {tier.label} you can go at most {MAX_TIER - tier} tier(s) up."
+            )
+        return errors
 
     def save(self, *args, **kwargs):
         self.email = normalize_email_address(self.email)
@@ -135,3 +190,12 @@ class User(UUIDModel, TimeStampedModel, AbstractBaseUser, PermissionsMixin):
     @property
     def is_guest(self):
         return self.account_type == AccountType.GUEST
+
+    @property
+    def is_onboarded(self):
+        """Full accounts are onboarded once skill tier and gender are set."""
+        return (
+            self.account_type == AccountType.FULL
+            and self.skill_tier is not None
+            and bool(self.gender)
+        )

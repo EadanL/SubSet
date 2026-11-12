@@ -25,3 +25,14 @@ Execute and verify these commands pass before marking a task as complete:
 - **Migration Check:** `python manage.py makemigrations --check --dry-run`
 - **Run Tests:** `pytest` or `python manage.py test`
 - **Linting/Formatting:** `black . --check` / `flake8`
+
+## Local Environment
+- **Python:** use the project virtualenv (`.venv/bin/python`, or activate it first). There is no bare `python` on PATH. Install with `pip install -r requirements-dev.txt`.
+- **Database:** PostgreSQL runs in Docker (`docker compose up -d`) on host port **5433**, because a local Homebrew Postgres holds 5432. Settings read `DATABASE_URL`, `SECRET_KEY`, `DEBUG` and `ALLOWED_HOSTS` from `.env` through `django-environ`.
+- **Tests:** tests are pytest-style (pytest-django), so run them with `pytest`. `python manage.py test` will not discover them.
+- **Secrets in `.env`:** avoid `$`, `#`, quotes and spaces in values, because Docker Compose reads `.env` too and expands `$`.
+
+## Project Conventions
+- **Base models:** every model inherits `core.models.UUIDModel` (and `TimeStampedModel` where useful). Shared choices live in `core/choices.py`.
+- **Validation:** put field-specific errors in `Model.clean()`, and back each rule with a named database `CheckConstraint`/`UniqueConstraint`. ModelForms must include every field such a rule reports on.
+- **Services:** functions in `<app>/services.py` take keyword-only arguments and raise `ValidationError` keyed by field, so forms can display the errors directly.

@@ -7,6 +7,8 @@ from django.db import IntegrityError, transaction
 from django.urls import reverse
 
 from accounts.models import AccountType, User
+from accounts.services import complete_onboarding, register_full_account
+from core.choices import Gender, SkillTier
 
 pytestmark = pytest.mark.django_db
 
@@ -166,6 +168,26 @@ class TestDatabaseConstraints:
             )
         )
 
+    def test_full_clean_requires_email_for_full_account(self):
+        user = User(display_name="No Email", account_type=AccountType.FULL)
+        user.set_unusable_password()
+
+        with pytest.raises(ValidationError) as exc_info:
+            user.full_clean()
+
+        # Field error from clean(), not the generic constraint message.
+        assert exc_info.value.message_dict == {
+            "email": ["Full accounts require an email address."]
+        }
+
+    def test_full_clean_normalizes_email_before_validating(self):
+        user = User(email="  Padded@Example.COM ", display_name="Padded")
+        user.set_unusable_password()
+
+        user.full_clean()
+
+        assert user.email == "padded@example.com"
+
     def test_full_clean_reports_case_insensitive_duplicate(self, full_user):
         user = User(email="JORDAN@EXAMPLE.COM", display_name="Imposter")
         user.set_unusable_password()
@@ -230,3 +252,249 @@ class TestUserAdmin:
         user = User.objects.get(email="new.player@example.com")
         assert user.account_type == AccountType.FULL
         assert user.check_password(PASSWORD)
+
+
+def profile_user(skill_tier=None, tier_flex_down=0, tier_flex_up=0):
+    user = User(
+        email="range@example.com",
+        display_name="Range",
+        skill_tier=skill_tier,
+        tier_flex_down=tier_flex_down,
+        tier_flex_up=tier_flex_up,
+    )
+    user.set_unusable_password()
+    return user
+
+
+class TestTierFlexRule:
+    @pytest.mark.parametrize(
+        "tier, down, up",
+        [
+            (None, 0, 0),
+            (SkillTier.BEGINNER, 0, 0),
+            (SkillTier.BEGINNER, 0, 4),
+            (SkillTier.ELITE, 4, 0),
+            (SkillTier.INTERMEDIATE, 2, 2),
+        ],
+    )
+    def test_ranges_on_the_scale_are_valid(self, tier, down, up):
+        user = profile_user(tier, down, up)
+
+        user.full_clean()
+        user.save()
+
+    @pytest.mark.parametrize(
+        "tier, down, up, error_fields",
+        [
+            (SkillTier.BEGINNER, 1, 0, {"tier_flex_down"}),
+            (SkillTier.ELITE, 0, 1, {"tier_flex_up"}),
+            (SkillTier.INTERMEDIATE, 3, 3, {"tier_flex_down", "tier_flex_up"}),
+            (None, 1, 0, {"skill_tier"}),
+            (None, 0, 1, {"skill_tier"}),
+        ],
+    )
+    def test_clean_reports_field_errors_once(self, tier, down, up, error_fields):
+        user = profile_user(tier, down, up)
+
+        with pytest.raises(ValidationError) as exc_info:
+            user.full_clean()
+
+        # Field-keyed errors only: the backstop constraint must not add a
+        # duplicate non-field error.
+        assert set(exc_info.value.message_dict) == error_fields
+
+    def test_error_message_names_the_tier(self):
+        user = profile_user(SkillTier.NOVICE, 2, 0)
+
+        with pytest.raises(ValidationError) as exc_info:
+            user.full_clean()
+
+        assert exc_info.value.message_dict["tier_flex_down"] == [
+            "From Novice (C) you can go at most 1 tier(s) down."
+        ]
+
+    @pytest.mark.parametrize(
+        "tier, down, up",
+        [
+            (SkillTier.BEGINNER, 1, 0),
+            (SkillTier.ELITE, 0, 1),
+            (None, 1, 0),
+            (None, 0, 1),
+            (0, 0, 0),
+            (6, 0, 0),
+        ],
+    )
+    def test_database_rejects_out_of_scale_ranges(self, tier, down, up):
+        # bulk_create skips clean(), so only the CheckConstraint applies.
+        assert_integrity_error(
+            lambda: User.objects.bulk_create([profile_user(tier, down, up)])
+        )
+
+
+class TestIsOnboarded:
+    def test_new_full_account_is_not_onboarded(self, full_user):
+        assert not full_user.is_onboarded
+
+    @pytest.mark.parametrize(
+        "tier, gender",
+        [(SkillTier.NOVICE, ""), (None, Gender.WOMAN)],
+    )
+    def test_requires_both_tier_and_gender(self, full_user, tier, gender):
+        full_user.skill_tier = tier
+        full_user.gender = gender
+
+        assert not full_user.is_onboarded
+
+    def test_tier_and_gender_complete_onboarding(self, full_user):
+        full_user.skill_tier = SkillTier.NOVICE
+        full_user.gender = Gender.PREFER_NOT_TO_SAY
+
+        assert full_user.is_onboarded
+
+    def test_guest_is_never_onboarded(self):
+        guest = User.objects.create_guest("Sam", phone="555-0100")
+        guest.skill_tier = SkillTier.NOVICE
+        guest.gender = Gender.WOMAN
+
+        assert not guest.is_onboarded
+
+
+class TestRegisterFullAccount:
+    def test_creates_normalized_full_account(self):
+        user = register_full_account(
+            email=" New@Example.COM ", password=PASSWORD, display_name="  New  "
+        )
+
+        user.refresh_from_db()
+        assert user.email == "new@example.com"
+        assert user.display_name == "New"
+        assert user.account_type == AccountType.FULL
+        assert user.check_password(PASSWORD)
+        assert not user.is_onboarded
+
+    @pytest.mark.parametrize("email", ["JORDAN@example.com", "jordan@example.com"])
+    def test_rejects_registered_email(self, full_user, email):
+        with pytest.raises(ValidationError) as exc_info:
+            register_full_account(email=email, password=PASSWORD, display_name="Dup")
+
+        assert set(exc_info.value.message_dict) == {"email"}
+
+    def test_rejects_email_held_by_guest(self):
+        User.objects.create_guest("Sam", email="sam@example.com")
+
+        with pytest.raises(ValidationError) as exc_info:
+            register_full_account(
+                email="Sam@Example.com", password=PASSWORD, display_name="Sam"
+            )
+
+        assert set(exc_info.value.message_dict) == {"email"}
+        assert User.objects.get(email="sam@example.com").is_guest
+
+    @pytest.mark.parametrize(
+        "email, display_name, error_field",
+        [
+            ("not-an-email", "Valid", "email"),
+            ("", "Valid", "email"),
+            ("valid@example.com", "   ", "display_name"),
+        ],
+    )
+    def test_rejects_invalid_fields(self, email, display_name, error_field):
+        with pytest.raises(ValidationError) as exc_info:
+            register_full_account(
+                email=email, password=PASSWORD, display_name=display_name
+            )
+
+        assert error_field in exc_info.value.message_dict
+        assert not User.objects.exists()
+
+    @pytest.mark.parametrize("password", ["short", "password123", "12345678901"])
+    def test_rejects_weak_password(self, password):
+        with pytest.raises(ValidationError) as exc_info:
+            register_full_account(
+                email="weak@example.com", password=password, display_name="Weak"
+            )
+
+        assert set(exc_info.value.message_dict) == {"password"}
+        assert not User.objects.exists()
+
+
+class TestCompleteOnboarding:
+    def test_saves_profile_and_onboards(self, full_user):
+        complete_onboarding(
+            full_user,
+            gender=Gender.WOMAN,
+            skill_tier=SkillTier.INTERMEDIATE,
+            tier_flex_down=1,
+            tier_flex_up=1,
+            travel_radius_km=25,
+            phone=" 555-0100 ",
+            display_name=" Jordan K ",
+        )
+
+        full_user.refresh_from_db()
+        assert full_user.is_onboarded
+        assert full_user.gender == Gender.WOMAN
+        assert full_user.skill_tier == SkillTier.INTERMEDIATE
+        assert (full_user.tier_flex_down, full_user.tier_flex_up) == (1, 1)
+        assert full_user.travel_radius_km == 25
+        assert full_user.phone == "555-0100"
+        assert full_user.display_name == "Jordan K"
+
+    def test_keeps_display_name_when_omitted(self, full_user):
+        complete_onboarding(full_user, gender=Gender.MAN, skill_tier=SkillTier.NOVICE)
+
+        full_user.refresh_from_db()
+        assert full_user.display_name == "Jordan"
+
+    def test_updates_timestamp(self, full_user):
+        before = full_user.updated_at
+
+        complete_onboarding(full_user, gender=Gender.MAN, skill_tier=SkillTier.NOVICE)
+
+        full_user.refresh_from_db()
+        assert full_user.updated_at > before
+
+    @pytest.mark.parametrize(
+        "gender, tier, error_fields",
+        [
+            ("", SkillTier.NOVICE, {"gender"}),
+            (Gender.WOMAN, None, {"skill_tier"}),
+            ("", None, {"gender", "skill_tier"}),
+        ],
+    )
+    def test_requires_gender_and_tier(self, full_user, gender, tier, error_fields):
+        with pytest.raises(ValidationError) as exc_info:
+            complete_onboarding(full_user, gender=gender, skill_tier=tier)
+
+        assert set(exc_info.value.message_dict) == error_fields
+
+    def test_invalid_range_leaves_user_unchanged(self, full_user):
+        with pytest.raises(ValidationError) as exc_info:
+            complete_onboarding(
+                full_user,
+                gender=Gender.WOMAN,
+                skill_tier=SkillTier.BEGINNER,
+                tier_flex_down=1,
+            )
+
+        assert set(exc_info.value.message_dict) == {"tier_flex_down"}
+        # In-memory instance is reset as well as the database row.
+        assert full_user.skill_tier is None
+        assert full_user.gender == ""
+        full_user.refresh_from_db()
+        assert not full_user.is_onboarded
+
+    def test_rejects_invalid_choice(self, full_user):
+        with pytest.raises(ValidationError) as exc_info:
+            complete_onboarding(full_user, gender="robot", skill_tier=SkillTier.NOVICE)
+
+        assert "gender" in exc_info.value.message_dict
+
+    def test_rejects_guest(self):
+        guest = User.objects.create_guest("Sam", phone="555-0100")
+
+        with pytest.raises(ValidationError):
+            complete_onboarding(guest, gender=Gender.WOMAN, skill_tier=SkillTier.NOVICE)
+
+        guest.refresh_from_db()
+        assert guest.skill_tier is None
