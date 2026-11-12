@@ -36,3 +36,5 @@ Execute and verify these commands pass before marking a task as complete:
 - **Base models:** every model inherits `core.models.UUIDModel` (and `TimeStampedModel` where useful). Shared choices live in `core/choices.py`.
 - **Validation:** put field-specific errors in `Model.clean()`, and back each rule with a named database `CheckConstraint`/`UniqueConstraint`. ModelForms must include every field such a rule reports on.
 - **Services:** functions in `<app>/services.py` take keyword-only arguments and raise `ValidationError` keyed by field, so forms can display the errors directly.
+- **Approved CSS exception:** the Tailwind input file may contain `@import "tailwindcss";`, `@source` lines, `@font-face` rules for self-hosted fonts, and one `@theme { … }` block of design tokens. No other CSS anywhere.
+- **Design tokens:** templates use theme token utilities (`bg-paper`, `text-ink`, `bg-court`, …), never hex values or arbitrary colours, so the palette and type can change in one place. The visual direction lives in `phase_2b_spec.md` §3.

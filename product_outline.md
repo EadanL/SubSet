@@ -302,10 +302,16 @@ Skill is self-reported, so ratings gradually calibrate it. Matching players are 
   - `complete_onboarding` requires gender and skill tier, and rejects guests.
 - **Email handling:** emails are trimmed and lowercased before validation, and a full account with no email gets a clear field error.
 
-### Phase 2B: Onboarding UI (planned)
+### Phase 2B: Onboarding UI (approved, not started)
+- **Full spec:** [`phase_2b_spec.md`](phase_2b_spec.md).
 - **Pages:** sign up, log in, log out, password reset, one-step profile onboarding, and profile view with inline edit.
 - **Tooling:** `django-htmx`, Tailwind through `django-tailwind-cli` (no Node), and pinned htmx and Alpine.js copied into `static/vendor/`.
 - **Forms:** submit with HTMX and re-render errors in place. They also work without JavaScript.
+- **Visual direction:**
+  - Warm paper background, charcoal text, court green (`#1E6B52`) as the primary colour, and ball yellow only for "Open" and urgent.
+  - Source Serif 4 headings over light Archivo body text, with condensed numbers for dates and times.
+  - Hairline lists instead of cards, and mostly square corners.
+  - It draws on PowerLeague (structure), Reflexion (spacing) and Mas Oyama (hierarchy). The direction may be iterated after real use, so templates use theme tokens only.
 
 ---
 
