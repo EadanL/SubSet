@@ -88,17 +88,22 @@ Every entity uses a UUID primary key. The full schema lives in `db_erd.mermaid`.
 
 ### Entry
 - League data is **manually entered** by users, with moderation to limit duplicates.
+- **No one owns a league.** New leagues are visible straight away as **Unverified**. Staff mark them **Verified** (confirmed to really exist) or **Removed** (made up or a duplicate, hidden everywhere). The person who submitted a league can edit it until it's verified; after that only staff (admins) can change it.
+- An exact duplicate (same name, venue, night and start time, ignoring case) is blocked. A removed league doesn't block a re-submission.
 - While filling out a league entry, the app **suggests existing leagues** on the same night/location, which reduces duplicates and helps people discover leagues they missed.
-- Required fields include location, night and times, game duration (and match slots for multi-match nights), tier, format (4s, 6s, co-ed, reverse co-ed, etc.), and **gender/format rules** (e.g. minimum number of women on court).
+- Required fields: name, venue and city (address optional), time zone, night, start time, game duration (10–240 min), matches per night (1–10), tier, team size (2s, 3s, 4s, 6s), division (Co-ed, Reverse co-ed, Men's, Women's, Open) and surface (Indoor, Sand, Grass).
+- **Gender rules:** Co-ed and Reverse co-ed leagues must set a **minimum number of women on court** (at least 1, at most the team size). Men's, Women's and Open leagues don't have one; the division itself says who plays.
+- New leagues default to the **America/Edmonton** time zone and the city **Calgary** (the launch city); both can be changed.
 - Only players whose gender is **Woman** count toward a women minimum. Every other value, including unset, does not.
 
 ### Organizer → League
+- A league's organizer is **optional** (independent leagues are allowed), but only a league with an organizer can require registered subs.
 - Registration requirements live on the **organizer/league**, not the player.
 - Each league has a flag such as **"subs must be registered."**
   - If set, this is a **hard, blocking eligibility filter**. Players not registered with that organizer cannot be matched or respond (guests are blocked with an explanation).
   - If not set (many leagues allow outside subs), anyone otherwise eligible can sub.
 - Player registrations are stored at the **organizer level**, so registering with an organizer makes a player eligible for all of that organizer's restricted leagues at once.
-- Registration is self-declared; captains can flag incorrect claims.
+- Registration is self-declared by full accounts (guests can't register); captains can flag incorrect claims once teams exist.
 
 ---
 
@@ -310,7 +315,20 @@ Skill is self-reported, so ratings gradually calibrate it. Matching players are 
 - `main_positions` (at most 2) and `sub_positions` on User, stored as Postgres arrays. Database constraints back the rules: valid positions only, at most 2 main positions, and no position in both lists.
 - Onboarding and the profile page have a Positions section with checkbox options. A main position greys out in the sub list, and a third main position can't be picked.
 
-### Phase 2B: Onboarding UI (in progress)
+### Leagues Phase 1: Database (complete)
+- `leagues` app with Organizer, League and OrganizerRegistration, each rule as a field error in `clean()` plus a named database constraint.
+- Services: `create_organizer`, `create_league`, `update_league` (submitter only, while unverified), `declare_registration` / `withdraw_registration`, and `can_sub_in` (the registration eligibility rule matching will reuse).
+- Django Admin with bulk "Mark verified" and "Remove" actions.
+- Deferred: SUBBING_LEAGUE (subbing-profile phase), captain flagging (teams phase), fuzzy duplicate suggestions and a moderation screen (next layer).
+
+### Leagues Phase 2: UI (complete)
+- **League finder** (`/leagues/`): filters for night, city, team size, division and level that update the results in place and the address bar. Rows show night and time, name, venue and city, and chips (team size, division, level, non-indoor surface, "Registered subs only", "Unverified").
+- **League page:** details plus a note on whether the signed-in player can sub there, and "Edit league" for the submitter until it's verified.
+- **Add / edit a league:** organizer search that picks an existing organizer or adds a new one (an existing name is reused); the women-minimum field appears only for co-ed and reverse co-ed. New leagues default to Calgary and America/Edmonton.
+- **Profile:** "Organizer registrations" section to add (search) or remove the organizers a player is registered with.
+- "Leagues" link in the nav for everyone.
+
+### Phase 2B: Onboarding UI (complete)
 - **Full spec:** [`phase_2b_spec.md`](phase_2b_spec.md).
 - **Pages:** sign up, log in, log out, password reset, one-step profile onboarding, and profile view with inline edit.
 - **Tooling:** `django-htmx`, Tailwind through `django-tailwind-cli` (no Node), and pinned htmx and Alpine.js copied into `static/vendor/`.
@@ -328,4 +346,6 @@ Skill is self-reported, so ratings gradually calibrate it. Matching players are 
 - **Cold start:** launch in one city, facility, or league first to build density before going broad.
 - **Liability:** decide whether a waiver or just a disclaimer is needed, and how to handle leagues that require organizer approval or rating caps for subs.
 - **Open decision:** this README assumes games come from **generated schedules** with a manual fallback (the recommended default). Confirm before finalizing the data model.
+- **Open question (matching phase):** who can sub into Men's and Women's leagues. For example, many rec leagues let women sub in men's leagues. The division is stored; the eligibility rule is decided with matching.
+- **Idea (teams phase):** verify a league automatically once a team with rostered players exists in it.
 - **Next step:** design the notification logic and permissions. The data model is drafted in `db_erd.mermaid` and is implemented app by app (see [Build Progress](#build-progress)).

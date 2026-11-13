@@ -7,7 +7,7 @@ erDiagram
     LEAGUE ||--o{ SUBBING_LEAGUE : "sub pool"
     USER ||--o{ ORGANIZER_REGISTRATION : "registered with"
     ORGANIZER ||--o{ ORGANIZER_REGISTRATION : holds
-    ORGANIZER ||--o{ LEAGUE : runs
+    ORGANIZER |o--o{ LEAGUE : "runs (optional)"
     LEAGUE ||--o{ TEAM : contains
     TEAM ||--o{ ROSTER_MEMBERSHIP : has
     USER |o--o{ ROSTER_MEMBERSHIP : "null = placeholder"
@@ -88,29 +88,38 @@ erDiagram
     }
     ORGANIZER {
         uuid id PK
-        string name
+        string name UK "unique ignoring case"
+        string website "optional"
+        uuid created_by FK "submitter, no rights"
+        timestamptz created_at
     }
     ORGANIZER_REGISTRATION {
-        uuid user_id FK
-        uuid organizer_id FK
-        timestamptz declared_at
-        bool flagged_by_captain
+        uuid id PK
+        uuid user_id FK "full accounts only"
+        uuid organizer_id FK "unique per user"
+        timestamptz created_at "declared at"
+        bool flagged_by_captain "deferred to teams phase"
     }
     LEAGUE {
         uuid id PK
-        uuid organizer_id FK
+        uuid organizer_id FK "nullable, independent leagues allowed"
         string name
-        string location
-        string timezone "IANA"
-        int weekday
+        string venue_name
+        string city "defaults to Calgary"
+        string address "optional"
+        string timezone "IANA, defaults to America/Edmonton"
+        smallint weekday "0 Monday to 6 Sunday"
         time start_time
-        int game_duration_min
-        int matches_per_night
+        smallint game_duration_min "10-240"
+        smallint matches_per_night "1-10"
         smallint tier "SkillTier 1-5, shared with USER"
-        string format "4s 6s coed etc"
-        jsonb gender_rules
-        bool subs_must_be_registered
-        string moderation_status
+        smallint team_size "2 3 4 or 6"
+        string division "coed reverse_coed mens womens open"
+        string surface "indoor sand grass"
+        smallint min_women_on_court "required for coed and reverse_coed only"
+        bool subs_must_be_registered "needs an organizer"
+        string verification_status "unverified verified removed"
+        uuid created_by FK "submitter, edits only while unverified"
     }
     TEAM {
         uuid id PK

@@ -1,0 +1,46 @@
+{% load ui %}
+{% comment %}
+  The player's organizer registrations on the profile page. Adding or removing
+  one swaps this whole section (id="organizer-registrations").
+{% endcomment %}
+<section id="organizer-registrations" class="flex flex-col gap-6 border-t border-hairline pt-8">
+  <div class="flex flex-col gap-2">
+    <h2 class="font-serif text-h2 font-semibold">Organizer registrations</h2>
+    <p class="font-light text-slate">Some leagues only take subs who are registered with their organizer. Add the organizers you're registered with.</p>
+  </div>
+
+  {% if registrations %}
+    <ul class="flex flex-col divide-y divide-hairline border-y border-hairline">
+      {% for registration in registrations %}
+        <li class="flex items-center justify-between gap-4 py-2">
+          <span class="font-medium">{{ registration.organizer.name }}</span>
+          <form method="post" action="{% url 'leagues:registration_remove' registration.organizer.pk %}"
+                hx-post="{% url 'leagues:registration_remove' registration.organizer.pk %}"
+                hx-target="#organizer-registrations" hx-swap="outerHTML">
+            {% csrf_token %}
+            <button type="submit" aria-label="Remove {{ registration.organizer.name }}"
+                    class="inline-flex min-h-11 cursor-pointer items-center rounded-full px-4 font-medium text-slate hover:bg-hairline hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+              Remove
+            </button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-slate">You haven't added any organizers yet.</p>
+  {% endif %}
+
+  <div class="flex flex-col gap-2">
+    <label for="registration-search" class="font-medium text-ink">Add an organizer</label>
+    <input type="search" id="registration-search" name="q" autocomplete="off"
+           placeholder="Search organizers"
+           hx-get="{% url 'leagues:organizer_search' %}" hx-vals='{"purpose": "register"}'
+           hx-trigger="input changed delay:300ms, search"
+           hx-target="#registration-results" hx-swap="innerHTML"
+           class="{% input_classes %}">
+    <div id="registration-results" aria-live="polite"></div>
+    {% if registration_error %}
+      <p role="alert" class="text-meta font-medium text-danger">{{ registration_error }}</p>
+    {% endif %}
+  </div>
+</section>

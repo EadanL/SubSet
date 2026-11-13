@@ -1,0 +1,73 @@
+{% comment %}
+  Add or edit a league. Swapped in place on an invalid HTMX submit. Alpine
+  tracks the division so the women-minimum field shows (and is submitted)
+  only for divisions that need it.
+{% endcomment %}
+<form method="post" action="{{ request.path }}"
+      hx-post="{{ request.path }}" hx-target="this" hx-swap="outerHTML"
+      hx-disabled-elt="find button[type=submit]"
+      x-data="{
+        division: '{{ form.division.value|default_if_none:''|escapejs }}',
+        withMinimum: [{% for d in form.women_minimum_divisions %}'{{ d }}', {% endfor %}],
+        get needsMinimum() { return this.withMinimum.includes(this.division) }
+      }"
+      novalidate
+      class="flex flex-col gap-8">
+  {% csrf_token %}
+  {% include "partials/_form_errors.html" %}
+
+  <section class="flex flex-col gap-6 border-t border-hairline pt-8">
+    <h2 class="font-serif text-h2 font-semibold">The league</h2>
+    {% include "partials/_field.html" with field=form.name %}
+    {% include "leagues/partials/_organizer_picker.html" %}
+    {% if form.organizer.errors %}
+      <ul class="flex flex-col gap-1 text-meta font-medium text-danger">
+        {% for error in form.organizer.errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+    {% include "partials/_checkbox_field.html" with field=form.subs_must_be_registered %}
+  </section>
+
+  <section class="flex flex-col gap-6 border-t border-hairline pt-8">
+    <h2 class="font-serif text-h2 font-semibold">When</h2>
+    <div class="grid gap-6 sm:grid-cols-2">
+      {% include "partials/_field.html" with field=form.weekday %}
+      {% include "partials/_field.html" with field=form.start_time %}
+      {% include "partials/_field.html" with field=form.game_duration_min %}
+      {% include "partials/_field.html" with field=form.matches_per_night %}
+    </div>
+  </section>
+
+  <section class="flex flex-col gap-6 border-t border-hairline pt-8">
+    <h2 class="font-serif text-h2 font-semibold">Where</h2>
+    {% include "partials/_field.html" with field=form.venue_name %}
+    {% include "partials/_field.html" with field=form.address %}
+    <div class="grid gap-6 sm:grid-cols-2">
+      {% include "partials/_field.html" with field=form.city %}
+      {% include "partials/_field.html" with field=form.timezone %}
+    </div>
+  </section>
+
+  <section class="flex flex-col gap-6 border-t border-hairline pt-8">
+    <h2 class="font-serif text-h2 font-semibold">Format</h2>
+    {% include "partials/_choice_field.html" with field=form.team_size layout="grid" %}
+    {% include "partials/_choice_field.html" with field=form.division layout="grid" %}
+    <div {% if form.division.value not in form.women_minimum_divisions %}hidden{% endif %} x-bind:hidden="!needsMinimum">
+      {% include "partials/_field.html" with field=form.min_women_on_court %}
+    </div>
+    {% include "partials/_choice_field.html" with field=form.surface layout="grid" %}
+    {% include "partials/_choice_field.html" with field=form.tier layout="rows" %}
+  </section>
+
+  <div class="flex flex-wrap items-center gap-3">
+    <button type="submit"
+            class="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full bg-court px-6 font-semibold text-surface hover:bg-court-dark disabled:cursor-wait focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+      <span class="in-[.htmx-request]:hidden">{% if league %}Save league{% else %}Add league{% endif %}</span>
+      <span class="hidden in-[.htmx-request]:inline">{% if league %}Saving league…{% else %}Adding league…{% endif %}</span>
+    </button>
+    <a href="{% if league %}{% url 'leagues:detail' league.pk %}{% else %}{% url 'leagues:list' %}{% endif %}"
+       class="inline-flex min-h-11 items-center justify-center rounded-full border border-field px-6 font-semibold text-ink hover:bg-hairline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+      Cancel
+    </a>
+  </div>
+</form>

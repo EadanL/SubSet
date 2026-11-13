@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     # Project apps
     "core",
     "accounts",
+    "leagues",
 ]
 
 MIDDLEWARE = [
@@ -132,6 +133,10 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 
 USE_TZ = True
+
+# Defaults for new leagues (each league stores its own IANA time zone).
+DEFAULT_LEAGUE_TIMEZONE = "America/Edmonton"  # Calgary, Alberta
+DEFAULT_LEAGUE_CITY = "Calgary"
 
 
 # Static files (CSS, JavaScript, Images)

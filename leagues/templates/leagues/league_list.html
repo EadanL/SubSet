@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Find a league | SubSet{% endblock %}
+
+{% block content %}
+<section class="mx-auto flex max-w-6xl flex-col gap-10 px-5 py-14 md:py-20">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div class="flex max-w-2xl flex-col gap-3">
+      <h1 class="font-serif text-h1 font-semibold">Find a league</h1>
+      <p class="font-light text-slate">Browse league nights near you, or add one that's missing.</p>
+    </div>
+    {% if user.is_authenticated %}
+      <a href="{% url 'leagues:create' %}"
+         class="inline-flex min-h-11 items-center justify-center rounded-full border border-field px-6 font-semibold text-ink hover:bg-hairline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+        Add a league
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="grid gap-10 lg:grid-cols-[17rem_1fr] lg:items-start">
+    {% comment %}
+      Changing any filter swaps the results list and updates the address bar.
+      Without JavaScript the "Show leagues" button submits the form normally.
+    {% endcomment %}
+    <form method="get" action="{% url 'leagues:list' %}"
+          hx-get="{% url 'leagues:list' %}" hx-trigger="change"
+          hx-target="#league-results" hx-swap="outerHTML" hx-push-url="true"
+          aria-label="Filter leagues"
+          class="flex flex-col gap-5">
+      {% for field in filter_form %}
+        {% include "partials/_field.html" with field=field %}
+      {% endfor %}
+      <noscript>
+        <button type="submit"
+                class="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-full bg-court px-6 font-semibold text-surface hover:bg-court-dark">
+          Show leagues
+        </button>
+      </noscript>
+      <a href="{% url 'leagues:list' %}"
+         class="inline-flex min-h-11 items-center self-start font-medium text-court underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court">
+        Clear filters
+      </a>
+    </form>
+
+    {% include "leagues/partials/_league_results.html" %}
+  </div>
+</section>
+{% endblock %}

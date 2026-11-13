@@ -38,3 +38,53 @@ class Position(models.TextChoices):
     MIDDLE_BLOCKER = "middle_blocker", "Middle blocker"
     LIBERO = "libero", "Libero"
     ALL_AROUND = "all_around", "All-around"
+
+
+class Weekday(models.IntegerChoices):
+    """Night of the week. 0 = Monday, matching Python's ``date.weekday()``."""
+
+    MONDAY = 0, "Monday"
+    TUESDAY = 1, "Tuesday"
+    WEDNESDAY = 2, "Wednesday"
+    THURSDAY = 3, "Thursday"
+    FRIDAY = 4, "Friday"
+    SATURDAY = 5, "Saturday"
+    SUNDAY = 6, "Sunday"
+
+
+class TeamSize(models.IntegerChoices):
+    """Players per side on court."""
+
+    DOUBLES = 2, "2s"
+    TRIPLES = 3, "3s"
+    FOURS = 4, "4s"
+    SIXES = 6, "6s"
+
+
+class Division(models.TextChoices):
+    """Who a league is for. Co-ed and reverse co-ed leagues set a minimum
+    number of women on court; the others don't."""
+
+    COED = "coed", "Co-ed"
+    REVERSE_COED = "reverse_coed", "Reverse co-ed"
+    MENS = "mens", "Men's"
+    WOMENS = "womens", "Women's"
+    OPEN = "open", "Open"
+
+
+class Surface(models.TextChoices):
+    INDOOR = "indoor", "Indoor"
+    SAND = "sand", "Sand"
+    GRASS = "grass", "Grass"
+
+
+class VerificationStatus(models.TextChoices):
+    """Whether a user-submitted record is confirmed to be real.
+
+    New records are visible straight away as ``UNVERIFIED``; staff mark them
+    ``VERIFIED``, or ``REMOVED`` (made up or a duplicate), which hides them.
+    """
+
+    UNVERIFIED = "unverified", "Unverified"
+    VERIFIED = "verified", "Verified"
+    REMOVED = "removed", "Removed"
