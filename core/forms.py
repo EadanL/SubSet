@@ -1,15 +1,30 @@
 from django import forms
 
 # Shared input styling built from the design tokens (phase_2b_spec.md §3).
+# Focus shows a court-green border (the 3:1 indicator) plus a soft glow;
+# outline-hidden keeps an outline in Windows high-contrast mode.
 INPUT_CLASSES = (
-    "block min-h-11 w-full rounded-xs border border-field bg-surface px-3 py-2 "
-    "text-ink placeholder:text-slate aria-invalid:border-danger "
-    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-court"
+    "block min-h-12 w-full rounded-lg border border-field bg-surface px-4 py-2.5 "
+    "text-ink placeholder:text-slate "
+    "transition-colors motion-reduce:transition-none hover:border-ink "
+    "focus-visible:border-court focus-visible:outline-hidden "
+    "focus-visible:ring-4 focus-visible:ring-court/15 "
+    "aria-invalid:border-danger aria-invalid:focus-visible:ring-danger/15 "
+    "disabled:cursor-not-allowed disabled:bg-paper disabled:text-slate"
 )
 
 # Room for the eye toggle in partials/_password_field.html, and Edge's built-in
 # reveal button hidden so there aren't two.
-PASSWORD_INPUT_CLASSES = "pr-11 [&::-ms-reveal]:hidden"
+PASSWORD_INPUT_CLASSES = "pr-12 [&::-ms-reveal]:hidden"
+
+# Number inputs without the browser's small up/down arrows.
+NUMBER_INPUT_CLASSES = (
+    "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none "
+    "[&::-webkit-outer-spin-button]:appearance-none"
+)
+
+# Select menus drop the browser arrow; partials/_field.html draws a chevron.
+SELECT_CLASSES = "cursor-pointer appearance-none pr-11"
 
 _UNSTYLED_INPUT_TYPES = {"checkbox", "radio", "hidden"}
 
@@ -31,4 +46,8 @@ class TailwindFormMixin:
                 classes = [INPUT_CLASSES, widget.attrs.get("class", "")]
                 if isinstance(widget, forms.PasswordInput):
                     classes.append(PASSWORD_INPUT_CLASSES)
+                elif isinstance(widget, forms.NumberInput):
+                    classes.append(NUMBER_INPUT_CLASSES)
+                elif isinstance(widget, forms.Select):
+                    classes.append(SELECT_CLASSES)
                 widget.attrs["class"] = " ".join(c for c in classes if c)

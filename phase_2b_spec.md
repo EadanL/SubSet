@@ -88,9 +88,15 @@ Colours and imagery from all three are deliberately not copied.
 | Columns | One column on mobile; 2 at `md`; text-and-panel split `lg:grid-cols-[1.4fr_1fr]` with `gap-10` | — |
 
 **Corner radius encodes what kind of element it is:**
-- Panels and rows: 0–2px (`rounded-none` / `rounded-xs`).
-- Inputs: 2px.
+- Panels and list rows: 0–2px (`rounded-none` / `rounded-xs`).
+- Inputs, selects, option tiles and option lists: 8px (`rounded-lg`).
 - Buttons and chips: fully rounded (`rounded-full`).
+
+**Inputs** (`core.forms.INPUT_CLASSES`, applied by `TailwindFormMixin`):
+- 48px tall (`min-h-12`), `px-4`, `field` border that darkens to `ink` on hover.
+- Focus: `court` border (the 3:1 indicator) plus a soft `ring-4 ring-court/15` glow; `outline-hidden` keeps an outline in high-contrast mode.
+- Errors: `danger` border and a `danger` glow when focused. Disabled: `paper` background, `slate` text.
+- Selects use a drawn chevron instead of the browser arrow; number inputs hide the up/down arrows.
 
 **Alignment:** left-aligned throughout. Only the empty-state message is centred.
 

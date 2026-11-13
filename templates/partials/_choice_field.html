@@ -14,16 +14,16 @@
     <div class="grid gap-2 sm:grid-cols-2">
       {% for option in field %}
         <label for="{{ option.id_for_label }}"
-               class="flex min-h-11 cursor-pointer items-center gap-3 rounded-xs border border-field bg-surface px-4 py-3 has-checked:border-court has-checked:bg-paper has-disabled:cursor-not-allowed has-disabled:text-slate has-disabled:opacity-60 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-court">
+               class="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-field bg-surface px-4 py-3 transition-colors motion-reduce:transition-none hover:border-ink has-checked:border-court has-checked:bg-paper has-disabled:cursor-not-allowed has-disabled:text-slate has-disabled:opacity-60 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-court">
           {{ option.tag }}<span>{{ option.choice_label }}</span>
         </label>
       {% endfor %}
     </div>
   {% else %}
-    <div class="flex flex-col divide-y divide-hairline border border-hairline bg-surface">
+    <div class="flex flex-col divide-y divide-hairline overflow-hidden rounded-lg border border-field bg-surface">
       {% for option in field %}
         <label for="{{ option.id_for_label }}"
-               class="flex min-h-11 cursor-pointer items-center gap-3 border-l-4 border-l-transparent px-4 py-3 has-checked:border-l-court has-checked:bg-paper has-disabled:cursor-not-allowed has-disabled:text-slate has-disabled:opacity-60 has-focus-visible:outline-2 has-focus-visible:-outline-offset-2 has-focus-visible:outline-court">
+               class="flex min-h-12 cursor-pointer items-center gap-3 border-l-4 border-l-transparent px-4 py-3 transition-colors motion-reduce:transition-none hover:bg-paper has-checked:border-l-court has-checked:bg-paper has-disabled:cursor-not-allowed has-disabled:text-slate has-disabled:opacity-60 has-focus-visible:outline-2 has-focus-visible:-outline-offset-2 has-focus-visible:outline-court">
           {{ option.tag }}<span>{{ option.choice_label }}</span>
         </label>
       {% endfor %}
